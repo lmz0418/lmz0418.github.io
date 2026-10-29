@@ -1,0 +1,20 @@
+#portfolio>#knowledge{display:none!important}
+#portfolio>#agent.vgent-product{margin:80px auto 0;padding:0;max-width:1920px}
+.product-section-head{display:grid;grid-template-columns:1fr 1.3fr;gap:48px;align-items:end;margin-bottom:28px}
+.product-section-head .sec-eyebrow{margin:0 0 12px}.showcase-name{font-size:clamp(52px,6vw,96px);line-height:1;margin:0;letter-spacing:-.05em}
+.showcase-intro h3{font-size:clamp(22px,2.2vw,34px);margin:0 0 12px;line-height:1.3}.showcase-intro p{font-size:15px;line-height:1.7;color:#aaa;margin:0 0 16px;max-width:680px}.showcase-link{display:inline-flex;align-items:center;border:1px solid #ffffff50;padding:12px 20px;border-radius:50px;font-size:14px;color:#fff;text-decoration:none}.showcase-link:hover{background:#fff;color:#111}
+.vgent-live{border:1px solid #ffffff26;border-radius:22px;overflow:hidden;background:#101112;position:relative;z-index:1}.vgent-tabs{display:flex;gap:8px;padding:14px 18px;border-bottom:1px solid #ffffff20}.vgent-tabs button{font:inherit;font-size:14px;color:#999;padding:11px 18px;border:1px solid transparent;border-radius:30px;background:transparent;cursor:pointer}.vgent-tabs button[aria-selected=true]{background:#f1f1f1;color:#111}.vgent-tabs button:focus-visible{outline:2px solid #fff;outline-offset:2px}.vgent-panel{height:600px;background:#08090a}.vgent-knowledge{display:block;border:0;width:100%;height:100%}.vgent-demo-film{display:block;width:100%;height:100%;object-fit:contain}.vgent-panel [hidden]{display:none}
+#portfolio>#idtalk.idtalk-showcase{max-width:1920px;margin:72px auto 0;padding:40px 0 0;border-top:1px solid #ffffff26}.idtalk-showcase .product-grid{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:48px;align-items:center}.idtalk-showcase .product-title{font-size:clamp(48px,5.5vw,86px);line-height:1;margin:12px 0 20px}.idtalk-showcase .product-headline{font-size:clamp(22px,2vw,32px);line-height:1.4;max-width:660px;text-wrap:balance}.idtalk-showcase .product-body{font-size:15px;line-height:1.75;max-width:600px;margin:16px 0}.idtalk-showcase .product-flow{margin:20px 0;gap:10px;font-size:13px}.idtalk-showcase .product-actions{margin:22px 0 0}.idtalk-showcase .product-note{margin-top:16px;max-width:580px}.idtalk-showcase .product-figure{margin:0;aspect-ratio:16/10;border-radius:22px;overflow:hidden}.idtalk-showcase .product-figure img{width:100%;height:100%;object-fit:cover}
+#portfolio>#numbers{margin-top:72px}
+@media(max-width:800px){.product-section-head{grid-template-columns:1fr;gap:24px}.vgent-tabs{overflow:auto;padding:10px}.vgent-tabs button{white-space:nowrap}.vgent-panel{height:600px}.idtalk-showcase .product-grid{grid-template-columns:1fr;gap:28px}}
+/* One aligned product heading: identity, description, and action share one row. */
+.product-section-head{grid-template-columns:minmax(240px,.8fr) minmax(0,1.5fr) auto;align-items:center;column-gap:40px;row-gap:18px;margin-bottom:32px}
+.product-section-head>.sec-eyebrow{grid-column:1/-1;margin:0}
+.showcase-intro h3{margin:0 0 10px;font-size:clamp(22px,1.8vw,32px)}
+.showcase-intro p{margin:0;max-width:660px;text-wrap:pretty}
+.product-section-head>.showcase-link{justify-self:end;white-space:nowrap}
+.vgent-panel{position:relative}
+.vgent-load-status{position:absolute;inset:0;display:flex;flex-direction:column;gap:18px;align-items:center;justify-content:center;color:#aaa;background:#08090a;z-index:2}
+.vgent-load-status .showcase-link{background:transparent;cursor:pointer}
+@media(max-width:1100px){.product-section-head{grid-template-columns:minmax(200px,.7fr) minmax(0,1.3fr);gap:18px 28px}.product-section-head>.showcase-link{grid-column:2;justify-self:start}}
+@media(max-width:800px){.product-section-head{grid-template-columns:1fr;gap:20px}.product-section-head>.showcase-link{grid-column:1;justify-self:start}}

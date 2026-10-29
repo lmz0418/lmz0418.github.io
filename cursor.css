@@ -1,0 +1,27 @@
+/* An Illustrator-style selection arrow. Native fallback includes video controls. */
+@media (any-pointer: fine) {
+  html, html body, html body *, html body.film-pointer, html body.film-pointer * {
+    cursor: url("./logo/illustrator-arrow.svg") 4 2, auto !important;
+  }
+}
+html body.mingze-pointer, html body.mingze-pointer * { cursor: none !important; }
+.mingze-cursor {
+  position: fixed; inset: auto; top: 0; left: 0; margin: 0; padding: 0;
+  width: 36px; height: 44px; border: 0; overflow: visible;
+  background: transparent; pointer-events: none; z-index: 2147483647;
+  filter: drop-shadow(0 1px 1px #0009); will-change: transform;
+}
+.mingze-cursor svg {
+  display: block; width: 36px; height: 44px;
+  transform-origin: 4px 2px;
+  transition: transform 120ms ease-out;
+}
+.mingze-cursor path { transition: fill 120ms ease-out; }
+.mingze-cursor.is-interactive path { fill: #fff; }
+.mingze-cursor.is-pressed svg { transform: scale(.88); }
+.mingze-cursor::backdrop { background: transparent; pointer-events: none; }
+/* The cinema's legacy reticle must not create a second cursor. */
+.film-cursor, .vgent-cursor { display: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .mingze-cursor svg, .mingze-cursor path { transition: none; }
+}

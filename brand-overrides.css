@@ -1,0 +1,3 @@
+/* Matching CSS and WebGL anchors keep the white-to-video handoff registered. */
+.opening-logo { transform: translate(-54.210526%, -32%); }
+.opening-mark { transform-origin: 54.210526% 32%; }

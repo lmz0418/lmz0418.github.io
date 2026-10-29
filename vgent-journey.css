@@ -1,0 +1,24 @@
+.vgent-journey-ui{position:fixed;z-index:12;left:5.5vw;right:5.5vw;bottom:38px;display:flex;gap:12px;align-items:center;pointer-events:none;font:11px Arial,sans-serif;letter-spacing:.08em;color:#fff;text-shadow:0 1px 12px #000}
+.vgent-journey-ui[hidden]{display:none}.vgent-journey-ui>span{margin-right:auto}.vgent-journey-ui button{pointer-events:auto;padding:12px 18px;background:#17191cb3;border:1px solid #ffffff38;border-radius:30px;backdrop-filter:blur(16px)}
+.vgent-journey-ui .vgent-work-button{min-width:176px;min-height:60px;padding:18px 30px;font-size:17px;font-weight:600;letter-spacing:.025em;border-color:#ffffff70;background:#202329c9;box-shadow:0 6px 28px #0003;transition:background .2s,border-color .2s,transform .2s}
+.vgent-journey-ui .vgent-work-button:hover{background:#383c43e6;border-color:#ffffffb3;transform:translateY(-2px)}
+.vgent-journey-ui .vgent-work-button:focus-visible{outline:2px solid #fff;outline-offset:5px}
+.vgent-journey-ui .vgent-work-button:disabled{cursor:progress;transform:none}
+body.journey-active .cinema-caption{opacity:0!important;visibility:hidden}
+body.journey-exit #portfolio,body.journey-gallery #portfolio{display:block;margin-top:0!important;overflow-anchor:none}
+body.journey-exit main,body.journey-gallery main{z-index:6;pointer-events:none}body.journey-exit #header,body.journey-exit .controls,body.journey-gallery #header,body.journey-gallery .controls{pointer-events:auto}
+body.journey-gallery #filmSpace{visibility:visible!important;opacity:1!important;pointer-events:none}
+body.journey-exit .gallery-heading,body.journey-exit .work-card>div{opacity:var(--vgent-labels,0)}
+html:has(body.journey-exit),html:has(body.journey-gallery){scrollbar-width:none}
+html:has(body.journey-exit)::-webkit-scrollbar,html:has(body.journey-gallery)::-webkit-scrollbar{display:none}
+
+/* Keep project cards compact inside a bounded gallery. */
+#portfolio>.gallery-heading,#portfolio>#workGrid,#portfolio>.all-works{max-width:1920px;margin-left:auto;margin-right:auto}
+body #workGrid,body .archive-grid{column-gap:clamp(24px,2vw,40px);row-gap:56px}
+body #portfolio .work-card .work-image,body #portfolio .work-card .work-image img{aspect-ratio:20/13;border-radius:22px}
+body #portfolio .work-card>div{margin-top:16px}
+body #portfolio .work-card h3{font-size:clamp(17px,1.15vw,23px)}
+
+/* Six wall panels land in two equal rows; all remaining works continue below. */
+body #workGrid{grid-template-columns:repeat(3,minmax(0,1fr));column-gap:clamp(20px,1.7vw,36px)}
+body.journey-exit #workGrid>.work-card:nth-child(n+7){visibility:hidden}

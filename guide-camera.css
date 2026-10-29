@@ -1,0 +1,9 @@
+/* This field owns the finished portfolio; the earlier experimental field is hidden. */
+#portfolio>.guide-layer:not(.camera-guide-field){display:none!important}
+#portfolio>.camera-guide-field{position:absolute;left:0;right:0;bottom:0;top:0;z-index:0;pointer-events:none;opacity:0}
+.camera-guide-field .guide-lines,.camera-guide-field .guide-rings,.camera-guide-field .guide-logos{position:absolute;inset:0}
+.camera-guide-field .guide-col{position:absolute;top:0;bottom:0;width:1px;background:repeating-linear-gradient(to bottom,#ffffff60 0 18px,transparent 18px 34px)}
+.camera-guide-field .guide-horizontals{position:absolute;left:0;right:0}
+.camera-guide-field .guide-hline{position:absolute;left:0;right:0;height:1px;background:repeating-linear-gradient(to right,#ffffff50 0 28px,transparent 28px 50px)}
+.camera-guide-field .guide-rings svg{width:100%;height:100%;display:block}
+.camera-guide-field .guide-wordmark{position:absolute;width:70vw;opacity:.06}

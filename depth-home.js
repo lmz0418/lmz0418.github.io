@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import { SVGLoader } from './vendor/SVGLoader.js';
 import { createDnaOpening } from './dna-opening.js';
-import { createCinemaPlayback } from './cinema-playback.js';
+import { createCinemaPlayback } from './cinema-playback.js?v=20261030-video1';
 import { cinemaCues } from './cinema-cues.js';
 import { buildCinema } from './cinema-space.js';
-import { createVgentJourney } from './vgent-journey.js';
+import { createVgentJourney } from './vgent-journey.js?v=20261030-video1';
 import { createGalleryMaterials } from './gallery-materials.js';
 import { createLiquidRefraction } from './liquid-refraction.js';
-import { connectGallerySections } from './gallery-sections.js';
+import { connectGallerySections } from './gallery-sections.js?v=20261030-video1';
 import { advanceCinemaScroll } from './cinema-scroll.js';
 import { works } from './works.js';
 import { PROJECT_ORDER } from './project-order.js';
@@ -16,10 +16,11 @@ import { clients } from './clients.js';
 import { numbers } from './numbers.js';
 import * as sections from './sections.js';
 import { createGuideLines } from './guide-lines.js';
-import { createCGMotionShowcase } from './cg-motion-showcase.js';
+import { createCGMotionShowcase } from './cg-motion-showcase.js?v=20261030-video1';
 import { artCollections } from './art-collections-data.js';
 import { createPSWorkflowCard } from './ps-workflow.js';
 import { t, getLang, initLang, toggleLang } from './i18n.js';
+import {getFilmPlayer} from './film-player.js?v=20261030-video1';
 
 // The language is resolved before anything is built, so every string below can read t().
 initLang();
@@ -31,6 +32,8 @@ const $=id=>document.getElementById(id);
 const hasOpenDialog=()=>document.querySelector('dialog[open]')!==null;
 const canvas=$('filmSpace'),opening=$('opening'),cameraFrame=$('camera');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const mobileMedia=matchMedia('(pointer: coarse)').matches||Boolean(navigator.connection?.saveData);
+const directGallery=/^#(?:portfolio|work|contact|about|agent|idtalk|tools|art-collections|post-workflow)$/.test(location.hash);
 const clamp=(n,a=0,b=1)=>Math.min(b,Math.max(a,n));
 let guides=null,guidesReady=false,liquid=null;
 const smooth=n=>{n=clamp(n);return n*n*(3-2*n)};
@@ -109,12 +112,22 @@ endLogo.position.z=-147;
 
 const media=[["assets/seedance-preview.mp4","assets/seedance-cover.webp"],["assets/capcut-preview.mp4","assets/capcut-cover.webp"],["assets/reno-preview.mp4","assets/reno-cover.webp"],["assets/lixiang-preview.mp4","assets/lixiang-cover.webp"],[null,JOURNEY_EDIT.poster]].map(([src,poster])=>{
   const video=document.createElement('video');
-  if(src)video.src=src;video.poster=poster;video.muted=true;video.loop=true;video.playsInline=true;video.preload='auto';
+  video.poster=poster;video.muted=true;video.loop=true;video.playsInline=true;video.preload='none';
   video.hidden=true;video.setAttribute('aria-hidden','true');document.body.append(video);
-  if(src)video.play().catch(()=>{});
   const texture=new THREE.VideoTexture(video);texture.colorSpace=THREE.SRGBColorSpace;
-  return {video,texture};
+  return {video,texture,src,pending:false,version:0};
 });
+function releasePreviews(){
+  for(const item of media){if(!item.video.getAttribute('src'))continue;item.version++;item.pending=false;item.video.pause();item.video.removeAttribute('src');item.video.preload='none';item.video.load();}
+}
+function updatePreviews(active,index){
+  for(const [i,item] of media.entries()){
+    const wanted=active&&item.src&&(!mobileMedia||i===index||phase==='opening'&&i===1);
+    if(!wanted){if(item.video.getAttribute('src')){item.version++;item.pending=false;item.video.pause();item.video.removeAttribute('src');item.video.preload='none';item.video.load();}continue;}
+    if(!item.video.getAttribute('src')){item.video.preload='auto';item.video.src=item.src;item.video.load();}
+    if(item.video.paused&&!item.pending){item.pending=true;const version=item.version;item.video.play().catch(()=>{}).finally(()=>{if(version===item.version)item.pending=false;});}
+  }
+}
 endMaterial.uniforms.uPortalPreview.value=media[1].texture;
 let w=0,h=0,logoWidth=0,uiScale=1,position=0,target=0,phase='preparing';
 const entryLogoScale=.5;
@@ -160,12 +173,12 @@ const filmTitle=detail=>getLang()==='en'&&detail.titleEn?detail.titleEn:detail.t
 // The playback module owns these elements; the caption no longer borrows their
 // dimensions, so they only have to exist and know their source.
 filmDetails.forEach(detail=>{
-  detail.metadata=document.createElement('video');detail.metadata.preload='metadata';if(detail.src)detail.metadata.src=detail.src;
+  detail.metadata=document.createElement('video');detail.metadata.preload='none';
 });
 const cinema=buildCinema(world,media,filmDetails);
 const playback=createCinemaPlayback(cinema,media,filmDetails,cinemaCues);
 media[4].video.pause();
-let dialogDetail=null,dialogLoad=null;
+const filmPlayer=getFilmPlayer();
 const cinemaCaptions=cinema.halls.map(hall=>{
   const element=document.createElement('div');
   element.className=`cinema-caption ${hall.side<0?'on-right':'on-left'}`;element.hidden=true;
@@ -201,11 +214,8 @@ canvas.addEventListener('click',event=>{
 });
 function openFilm(detail){
   if(detail.journey==='vgent'){replayVgent();return;}
-  const film=$('fullFilm'),point=playback.point(detail);dialogDetail=detail;dialogLoad?.abort();dialogLoad=new AbortController();film.dataset.cinemaReady='false';
-  $('filmTitle').textContent=filmTitle(detail);film.src=detail.src;film.muted=!soundOn;
-  film.addEventListener('loadedmetadata',()=>{film.currentTime=Math.min(point,Math.max(0,film.duration-.1))},{once:true,signal:dialogLoad.signal});
-  const markReady=()=>{if(film.readyState>=2&&!film.seeking)film.dataset.cinemaReady='true'};film.addEventListener('seeked',markReady,{signal:dialogLoad.signal});film.addEventListener('loadeddata',markReady,{signal:dialogLoad.signal});
-  playback.pause();$('filmDialog').showModal();film.play().catch(()=>{});
+  const point=playback.point(detail),work=works.find(item=>item.video===detail.src);
+  filmPlayer.open({src:detail.src,title:filmTitle(detail),poster:work?.poster,muted:!soundOn,startAt:point,onFinish:time=>playback.resume(detail,time)});
 }
 const grid=$('workGrid');
 const featuredIds=PROJECT_ORDER.slice(0,6);
@@ -221,7 +231,7 @@ for(const work of [...selected,...others]){
   if(work.cg){link.type='button';link.dataset.cgProject=work.id;}
   else if(work.journey==='vgent'){link.type='button';link.addEventListener('click',replayVgent);}
   else if(work.video){link.type='button';link.addEventListener('click',()=>{
-    dialogLoad?.abort();dialogDetail=null;playback.pause();$('filmTitle').textContent=workTitle(work);$('fullFilm').src=work.video;$('fullFilm').muted=!soundOn;$('filmDialog').showModal();$('fullFilm').play().catch(()=>{});
+    filmPlayer.open({src:work.video,title:workTitle(work),poster:work.poster,muted:!soundOn});
   });}else{link.href=work.url||work.poster;link.target='_blank';link.rel='noopener';}
   const img=document.createElement('img');img.src=work.poster;img.alt=workTitle(work);img.loading=selected.includes(work)?'eager':'lazy';link.append(img);
   const caption=document.createElement('div'),heading=document.createElement('h3'),title=document.createElement('a'),info=document.createElement('p');title.href=work.url||work.poster;title.className='project-title-link';heading.append(title);caption.append(heading,info);article.append(link,caption);
@@ -245,7 +255,9 @@ const journey=createVgentJourney({cinema,camera,renderer,canvas,getLang,gallery,
   onGallery:()=>{$('status').textContent=t('status.end');},
   onSeek:p=>{position=target=p;scrollTo(0,0);}
 });
-function replayVgent(){stopEntry();playback.pause();journey.replay();}
+function replayVgent(){stopEntry();playback.suspendBackground();journey.resumeBackground();journey.replay();}
+function suspendBackground(){releasePreviews();playback.suspendBackground();journey.suspendBackground();}
+addEventListener('portfolio-film-open',suspendBackground);
 const handoffLift=()=>innerHeight*.65;
 let handoffApplied=false;
 function applyHandoff(){
@@ -489,8 +501,6 @@ function updateAgentReveal(){
     if(last.t!==transform){last.t=transform;element.style.transform=transform}
   });
 }
-$('closeFilm').addEventListener('click',()=>$('filmDialog').close());
-$('filmDialog').addEventListener('close',()=>{if(dialogDetail&&$('fullFilm').readyState>=1&&!$('fullFilm').seeking)playback.resume(dialogDetail,$('fullFilm').currentTime);dialogLoad?.abort();dialogDetail=null;$('fullFilm').pause();$('fullFilm').removeAttribute('src');$('fullFilm').load()});
 // A missing or hanging SVG must not prevent the frame loop and entry timer
 // from starting. The cinema can open directly without the vector portal.
 let logoLoadTimer;
@@ -534,6 +544,7 @@ const dnaIntro=createDnaOpening(opening,{hold:0,speed:4,effects:false,
   onInterface:()=>document.body.classList.add('incoming'),onComplete:handOverLogo});
 function reveal(){if(phase==='opening')dnaIntro.finish()}
 function playOpening(){
+  playback.resumeBackground();journey.resumeBackground();
   journey.reset();
   stopEntry();dnaIntro.kill();logoDissolve?.kill();logoDissolve=null;logoReveal.value=0;
   playback.pause();playback.resetIntro();
@@ -588,7 +599,7 @@ function updateSound(){const blocked=soundOn&&soundBlocked();$('sound').textCont
 function setSound(on){
   soundOn=on;$('fullFilm').muted=!on;
   // Start both permission requests in this gesture, before awaiting either.
-  const attempts=[playback.setSound(on),journey.setSound(on)];updateSound();
+  const attempts=journey.state==='gallery'||hasOpenDialog()?[]:journey.state==='cinema'?[playback.setSound(on)]:[journey.setSound(on)];updateSound();
   return Promise.allSettled(attempts).then(updateSound);
 }
 $('sound').addEventListener('click',()=>setSound(soundOn&&soundBlocked()?true:!soundOn));
@@ -596,15 +607,27 @@ $('lang').addEventListener('click',()=>toggleLang());
 // Everything the scripts built reads the dictionary again when the language changes.
 addEventListener('languagechange',()=>{localizeCards();localizeCaptions();localizeNumbers();renderAgent();renderSections();collectRevealTargets();guides&&guides.refit();updateSound()});
 // A gesture unlocks the default-on soundtrack without toggling the preference.
-const unlockSound=e=>{if(!hasOpenDialog()&&soundOn&&(!playback.unlocked()||!journey.audioUnlocked()||soundBlocked())&&!e.target.closest('#sound'))setSound(true)};
+const unlockSound=e=>{
+  if(journey.state==='gallery'||hasOpenDialog()||e.target.closest('#sound,.work-image,[data-cg-project],.product-action'))return;
+  if(journey.state==='cinema')updatePreviews(true,cinema.active(Math.min(position,.80)).mediaIndex);
+  if(soundOn&&(!playback.unlocked()||!journey.audioUnlocked()||soundBlocked()))setSound(true);
+};
 addEventListener('click',unlockSound,{passive:true});addEventListener('keydown',unlockSound);addEventListener('touchend',unlockSound,{passive:true});
 updateSound();
-document.addEventListener('visibilitychange',()=>{media.forEach(m=>document.hidden||hasOpenDialog()||!m.video.getAttribute('src')?m.video.pause():m.video.play().catch(()=>{}));if(document.hidden)playback.pause()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)suspendBackground()});
 
 // The entry stays a bare breathing dot, but a failed or stalled load must not trap
 // the visitor: failed media is retried, then the cinema opens on what did buffer.
 const prepStarted=performance.now();
 let prepRetries=0,prepNextRetry=1000,prepTimer;
+if(mobileMedia){
+  const actions=document.createElement('div');actions.className='cinema-mobile-actions';
+  const start=document.createElement('button'),work=document.createElement('button');
+  start.type=work.type='button';start.textContent=getLang()==='en'?'▶ Play opening':'▶ 播放开场';work.textContent=getLang()==='en'?'View work ↗':'查看作品 ↗';
+  start.addEventListener('click',()=>{playback.resumeBackground();updatePreviews(true,cinema.halls[0].mediaIndex);playback.setSound(soundOn);start.textContent=getLang()==='en'?'Loading…':'正在载入…';});
+  work.addEventListener('click',()=>openPersonalSection('#portfolio'));
+  actions.append(start,work);$('cinemaPreparation').append(actions);
+}
 function finishPreparation(){
   if(phase!=='preparing'||window.cinemaStartup?.failed())return;
   clearInterval(prepTimer);
@@ -627,7 +650,7 @@ function updatePreparation(){
 prepTimer=setInterval(updatePreparation,250);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)updatePreparation()});
 addEventListener('cinema-startup-failed',()=>{
-  clearInterval(prepTimer);stopEntry();dnaIntro.kill();logoDissolve?.kill();playback.pause();
+  clearInterval(prepTimer);stopEntry();dnaIntro.kill();logoDissolve?.kill();suspendBackground();
   phase='fallback';position=target=1;
 });
 
@@ -637,6 +660,10 @@ function frame(now){
   if(renderer.getContext().isContextLost()){last=now;requestAnimationFrame(frame);return;}
   const rawDt=now-last,dt=Math.min(rawDt,50);last=now;
   const dialogOpen=hasOpenDialog();
+  const mediaBlocked=dialogOpen||document.hidden||journey.state==='gallery';
+  if(mediaBlocked)suspendBackground();
+  else{journey.resumeBackground();if(journey.state==='cinema')playback.resumeBackground();else playback.suspendBackground();}
+  updatePreviews(!mediaBlocked&&['cinema','entering'].includes(journey.state),cinema.active(Math.min(position,.80)).mediaIndex);
   if(['entering','scrubbing','exiting','gallery'].includes(journey.state)){frameIntervals.push(rawDt);if(frameIntervals.length>300)frameIntervals.shift();if(++perfTicks%60===0){const values=[...frameIntervals].sort((a,b)=>a-b);canvas.dataset.vgentPerf=JSON.stringify({frames:perfTicks,p95:+values[Math.floor(values.length*.95)].toFixed(2),max:+values.at(-1).toFixed(2),long:values.filter(v=>v>50).length});}}
   position+=(target-position)*(reduced?1:1-Math.exp(-dt/(position>.80?100:200)));
   if(Math.abs(target-position)<.00001)position=target;
@@ -647,10 +674,6 @@ function frame(now){
   if(journey.state==='gallery'&&!cinemaBuffersParked){renderTarget.setSize(1,1);compositeTarget.setSize(1,1);endingTarget.setSize(1,1);cinemaBuffersParked=true;}
   if(cinemaBuffersParked&&(['cinema','entering'].includes(journey.state)||(journey.clock.direction<0&&journey.clock.time<3))){resize();cinemaBuffersParked=false;}
 
-  for(const [i,item] of media.entries()){
-    if(!item.video.getAttribute('src')||i===4||document.hidden||dialogOpen||!['cinema','entering'].includes(journey.state))item.video.pause();
-    else if(phase==='ready'&&item.video.paused)item.video.play().catch(()=>{});
-  }
   updateSound();
   canvas.dataset.transitioning=String(!!entryTween);
   const uiAmount=phase==='ready'?1:dnaIntro.interfaceAmount();
@@ -720,8 +743,9 @@ function openPersonalSection(anchor='#portfolio'){
   clearInterval(prepTimer);stopEntry();dnaIntro.kill();logoDissolve?.kill();logoDissolve=null;
   $('cinemaPreparation').hidden=true;$('skip').disabled=false;opening.hidden=true;phase='ready';
   document.body.classList.remove('incoming');document.body.classList.add('ready');window.cinemaStartup?.finish();
+  suspendBackground();
   journey.skip();requestAnimationFrame(()=>requestAnimationFrame(()=>document.querySelector(anchor==='#work'?'#portfolio':anchor)?.scrollIntoView({behavior:'instant'})));
 }
 window.mingzeCinema={showWork:()=>openPersonalSection(),replay:playOpening};
 document.querySelectorAll('a[href="#contact"]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();openPersonalSection('#contact')}));
-if(['#portfolio','#work','#contact','#about','#agent','#idtalk','#tools','#art-collections','#post-workflow'].includes(location.hash))openPersonalSection(location.hash);
+if(directGallery)openPersonalSection(location.hash);

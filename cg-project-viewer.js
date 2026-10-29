@@ -26,7 +26,7 @@ export function createCGProjectViewer(getLang, { additionalEntries = [] } = {}) 
   const entries = [...cgEntries, ...additionalEntries];
   const sheet = make('link');
   sheet.rel = 'stylesheet';
-  sheet.href = new URL('./cg-project-viewer.css', import.meta.url).href;
+  sheet.href = new URL('./cg-project-viewer.css?v=20261030-video1', import.meta.url).href;
   document.head.append(sheet);
 
   const dialog = make('dialog', 'cg-project-dialog');
@@ -51,11 +51,20 @@ export function createCGProjectViewer(getLang, { additionalEntries = [] } = {}) 
   video.controls = true;
   video.playsInline = true;
   video.preload = 'metadata';
+  video.setAttribute('playsinline', '');
+  video.setAttribute('webkit-playsinline', '');
   const errorBox = make('div', 'cg-viewer-error');
   errorBox.setAttribute('role', 'status');
+  errorBox.setAttribute('aria-live', 'polite');
   const errorText = make('p');
+  const videoActions = make('div', 'cg-viewer-video-actions');
+  const playButton = button('cg-viewer-pill', () => playVideo());
   const retryButton = button('cg-viewer-pill', () => loadVideo(true));
-  errorBox.append(errorText, retryButton);
+  const directLink = make('a', 'cg-viewer-pill');
+  directLink.target = '_blank';
+  directLink.rel = 'noopener';
+  videoActions.append(playButton, retryButton, directLink);
+  errorBox.append(errorText, videoActions);
   errorBox.hidden = true;
   mediaBox.append(video, errorBox);
 
@@ -108,6 +117,7 @@ export function createCGProjectViewer(getLang, { additionalEntries = [] } = {}) 
   let project = null, activeTab = 'film', imageIndex = 0, split = 50;
   let focusBefore = null, savedScroll = null, locked = false, bodyStyles = null, htmlOverflow = null;
   let disposed = false, pointerId = null, imageLoadToken = 0;
+  let videoToken = 0, playbackTimer = null, playbackState = 'idle', playbackRequested = false;
   let tabButtons = [], thumbButtons = [];
   const isArt = () => project?.category === 'art';
   const isGallery = () => project?.type === 'gallery';
@@ -119,23 +129,110 @@ export function createCGProjectViewer(getLang, { additionalEntries = [] } = {}) 
   const tabLabel = tab => ({ demo: 'Demo', comparison: label('白模对比', 'Clay comparison'), film: label('成片', 'Film'), storyboards: label('分镜', 'Storyboard') })[tab];
 
   function clearVideo() {
+    ++videoToken;
+    clearTimeout(playbackTimer); playbackTimer = null;
+    playbackRequested = false; playbackState = 'idle';
     video.pause();
     video.removeAttribute('src');
     video.removeAttribute('poster');
     video.load();
     errorBox.hidden = true;
+    mediaBox.removeAttribute('aria-busy');
+    directLink.removeAttribute('href');
+  }
+  function playbackMessage() {
+    const messages = {
+      ready: ['点击播放，或使用下方播放器控件。', 'Press play or use the player controls below.'],
+      loading: ['正在载入视频…', 'Loading video…'],
+      blocked: ['请点击播放，或直接打开视频。', 'Press play or open the video directly.'],
+      error: ['视频未能播放，可重新加载或直接打开。', 'Playback failed. Reload or open the video directly.'],
+      timeout: ['加载用时较长，可重新加载或直接打开视频。', 'Loading is taking longer. Reload or open the video directly.'],
+      paused: ['视频已暂停。', 'Video paused.'],
+      ended: ['播放结束，可再次播放。', 'Playback ended. Play again.'],
+      missing: ['这段视频暂时无法载入。', 'This video is temporarily unavailable.']
+    };
+    const message = messages[playbackState];
+    errorText.textContent = message ? label(...message) : '';
+    playButton.textContent = playbackState === 'ended' ? label('再次播放', 'Play again') : label('播放视频', 'Play video');
+    retryButton.textContent = label('重新加载', 'Reload');
+    directLink.textContent = label('直接打开视频 ↗', 'Open video ↗');
+    const available = !!video.getAttribute('src');
+    playButton.hidden = !available || playbackState === 'loading' || playbackState === 'error';
+    retryButton.hidden = !available || ['ready', 'paused', 'ended'].includes(playbackState);
+    directLink.hidden = !available;
+  }
+  function showPlayback(state) {
+    playbackState = state;
+    errorBox.hidden = state === 'idle' || state === 'playing';
+    mediaBox.setAttribute('aria-busy', String(state === 'loading'));
+    playbackMessage();
+  }
+  function waitForPlayback() {
+    if (playbackTimer !== null) return;
+    const token = videoToken;
+    playbackTimer = setTimeout(() => {
+      playbackTimer = null;
+      if (token === videoToken && dialog.open && playbackRequested) showPlayback('timeout');
+    }, 12000);
+  }
+  function playVideo() {
+    if (!dialog.open || !video.getAttribute('src')) return;
+    const token = videoToken;
+    playbackRequested = true;
+    showPlayback('loading');
+    waitForPlayback();
+    // Keep play() in the click/tab gesture so iOS can authorize audible video.
+    let attempt;
+    try { attempt = video.play(); }
+    catch (failure) { playbackFailed(failure, token); return; }
+    Promise.resolve(attempt).catch(failure => playbackFailed(failure, token));
+  }
+  function playbackFailed(failure, token) {
+    if (token !== videoToken || disposed || !dialog.open) return;
+    clearTimeout(playbackTimer); playbackTimer = null;
+    playbackRequested = false;
+    showPlayback(failure?.name === 'NotAllowedError' ? 'blocked' : 'error');
   }
   function loadVideo(autoplay = false) {
     clearVideo();
     const media = project?.media?.[activeTab];
-    if (!media?.src) { errorBox.hidden = false; updateLabels(); return; }
+    if (!media?.src) { showPlayback('missing'); return; }
     if (media.poster || project.cover) video.poster = media.poster || project.cover;
     video.src = media.src;
+    directLink.href = media.src;
     video.load();
-    if (autoplay && dialog.open) video.play().catch(() => {});
+    showPlayback('ready');
+    if (autoplay && dialog.open) playVideo();
   }
-  listen(video, 'error', () => { if (video.getAttribute('src')) errorBox.hidden = false; });
-  listen(video, 'loadeddata', () => { errorBox.hidden = true; });
+  listen(video, 'error', () => {
+    if (video.getAttribute('src') && video.error) playbackFailed(video.error, videoToken);
+  });
+  listen(video, 'play', () => {
+    if (!dialog.open || !video.getAttribute('src') || video.paused) return;
+    playbackRequested = true; showPlayback('loading'); waitForPlayback();
+  });
+  listen(video, 'playing', () => {
+    if (!dialog.open || !video.getAttribute('src') || video.paused) return;
+    clearTimeout(playbackTimer); playbackTimer = null;
+    playbackRequested = true; showPlayback('playing');
+  });
+  for (const event of ['waiting', 'stalled']) listen(video, event, () => {
+    if (event === 'stalled' && video.readyState >= 3) return;
+    if (dialog.open && video.getAttribute('src') && playbackRequested && !video.paused) {
+      showPlayback('loading'); waitForPlayback();
+    }
+  });
+  listen(video, 'pause', () => {
+    if (!dialog.open || !video.getAttribute('src') || !video.paused || video.ended || playbackState === 'idle') return;
+    clearTimeout(playbackTimer); playbackTimer = null;
+    playbackRequested = false;
+    if (['playing', 'loading', 'timeout'].includes(playbackState)) showPlayback('paused');
+  });
+  listen(video, 'ended', () => {
+    clearTimeout(playbackTimer); playbackTimer = null;
+    playbackRequested = false;
+    if (dialog.open && video.getAttribute('src')) showPlayback('ended');
+  });
 
   function setSplit(value) {
     split = Math.max(0, Math.min(100, Number(value) || 0));
@@ -296,8 +393,7 @@ export function createCGProjectViewer(getLang, { additionalEntries = [] } = {}) 
     tabs.setAttribute('aria-label', label('项目制作阶段', 'Project stages'));
     tabButtons.forEach((node, index) => { node.textContent = tabLabel(MOTION_TABS[index]); });
     video.setAttribute('aria-label', art ? titleOf(project) : `${titleOf(project)} / ${tabLabel(activeTab)}`);
-    errorText.textContent = label('视频暂未载入，请重试。', 'The video could not load. Please retry.');
-    retryButton.textContent = label('重新加载', 'Retry');
+    playbackMessage();
     beforeTag.textContent = sideLabel('a'); afterTag.textContent = sideLabel('b');
     range.setAttribute('aria-label', art ? label('拖动比较方案 A 与方案 B', 'Drag to compare version A and version B') : label('拖动比较白模与成品', 'Drag to compare clay and render'));
     previous.setAttribute('aria-label', art ? label(still ? '上一组方案' : '上一张图片', still ? 'Previous comparison' : 'Previous image') : label(still ? '上一个角度' : '上一张分镜', still ? 'Previous angle' : 'Previous storyboard'));

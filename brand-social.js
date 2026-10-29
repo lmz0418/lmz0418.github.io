@@ -16,7 +16,7 @@ export function createBrandSocial(getLang,{reduced=false}={}){
     const stats=Array.from(host.querySelectorAll('.stat-cell')).map(cell=>({value:cell.querySelector('.stat-value')?.textContent,label:cell.querySelector('.stat-label')?.textContent}));
     host.replaceChildren();host.classList.add('social-impact');
     phone=el('div','social-phone');
-    const screen=el('div','social-screen');video=el('video','social-film');video.src='assets/seedance-preview.mp4';video.poster='assets/seedance-cover.webp';video.muted=true;video.loop=true;video.playsInline=true;video.preload='metadata';video.setAttribute('aria-label',en?'Seedance 2.5 film':'Seedance 2.5 作品视频');
+    const screen=el('div','social-screen');video=el('video','social-film');video.poster='assets/seedance-cover.webp';video.muted=true;video.loop=true;video.playsInline=true;video.preload='none';video.setAttribute('aria-label',en?'Seedance 2.5 film':'Seedance 2.5 作品视频');
     const status=el('div','social-status');status.append(el('span','','09:41'),el('span','social-island','MAKE BELIEVE'),el('span','','▥ ▰'));
     const caption=el('div','social-caption');caption.append(el('span','social-account','@MINGZE LI'),el('strong','','SEEDANCE 2.5'),el('p','',en?'From an idea to a moving story.':'从一个想象，到一段被看见的故事。'));
     const reactions=el('div','social-reactions');reactions.setAttribute('aria-hidden','true');
@@ -38,7 +38,9 @@ export function createBrandSocial(getLang,{reduced=false}={}){
   function update(now=performance.now()){
     for(const metric of metrics){const rect=metric.cell.getBoundingClientRect();if(rect.bottom<=0||rect.top>=innerHeight*1.05)metric.started=null;if(metric.started===null&&rect.bottom>0&&rect.top<innerHeight*.92)metric.started=now;const q=reduced?1:metric.started===null?0:Math.min(1,Math.max(0,(now-metric.started)/1100));const p=1-Math.pow(1-q,3);if(Math.abs(p-metric.last)<.0001)continue;metric.last=p;metric.cell.dataset.rollProgress=p.toFixed(3);for(const {strip,end} of metric.wheels)strip.style.transform=`translate3d(0,${-end*p}em,0)`;}
   }
-  function applyPlayback(){if(!phone||!video)return;const active=inView&&!document.hidden;const playing=active&&!userPaused;phone.classList.toggle('is-playing',playing&&!reduced);phone.classList.toggle('is-arrived',active);if(playing)video.play().catch(()=>{});else video.pause();}
+  function applyPlayback(){if(!phone||!video)return;const active=inView&&!document.hidden&&!document.querySelector('dialog[open]');const playing=active&&!userPaused;phone.classList.toggle('is-playing',playing&&!reduced);phone.classList.toggle('is-arrived',active);if(playing){if(!video.getAttribute('src'))video.src='assets/seedance-preview.mp4';video.play().catch(()=>{});}else{video.pause();if(!active&&video.getAttribute('src')){video.removeAttribute('src');video.load();}}}
+  const filmOpen=()=>{video?.pause();if(video?.getAttribute('src')){video.removeAttribute('src');video.load();}};
+  addEventListener('portfolio-film-open',filmOpen);
   const visibility=()=>applyPlayback();document.addEventListener('visibilitychange',visibility);
-  return {sync,update,dispose(){observer?.disconnect();video?.pause();document.removeEventListener('visibilitychange',visibility);css.remove();}};
+  return {sync,update,dispose(){observer?.disconnect();video?.pause();document.removeEventListener('visibilitychange',visibility);removeEventListener('portfolio-film-open',filmOpen);css.remove();}};
 }

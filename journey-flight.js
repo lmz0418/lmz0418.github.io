@@ -13,18 +13,38 @@ export function createJourneyFlight(){
   const video=document.createElement('video');video.hidden=true;video.muted=true;video.playsInline=true;video.preload='none';
   video.dataset.vgentFlight='true';document.body.append(video);
   const texture=new THREE.VideoTexture(video);texture.colorSpace=THREE.SRGBColorSpace;
-  let job=null,loaded=false,pending=false,failed=false;
-  const onError=()=>{failed=true;};video.addEventListener('error',onError);
-  function warm(){if(loaded)return;loaded=true;video.src=JOURNEY_EDIT.proxy;video.preload='auto';video.load();}
+  let job=null,loaded=false,pending=false,failed=false,suspended=false,version=0;
+  const onError=()=>{if(loaded&&video.getAttribute('src'))failed=true;};video.addEventListener('error',onError);
+  function warm(){if(loaded||suspended)return;loaded=true;video.src=JOURNEY_EDIT.proxy;video.preload='auto';video.load();}
+  function suspendBackground(){
+    if(suspended)return;suspended=true;version++;video.pause();loaded=pending=false;
+    if(video.getAttribute('src')){video.removeAttribute('src');video.preload='none';video.load();}
+    // Keep the flight position; a resumed decoder seeks once before continuing.
+    if(job){job.resumePhase=job.phase;job.resumeTime=job.time;job.resumeWait=0;job.seek=false;}
+  }
+  function resumeBackground(){suspended=false;}
   function start(from){
     if(job)return false;
     warm();video.pause();job={from,origin:from,phase:'prepare',elapsed:0,wait:0,seek:false,blend:0,amount:0,velocity:0,time:from};return true;
   }
-  function play(){if(video.paused&&!pending){pending=true;video.play().catch(e=>{if(e.name!=='AbortError')failed=true;}).finally(()=>{pending=false;if(!job)video.pause();});}}
+  function play(){if(!suspended&&video.paused&&!pending){const attempt=version;pending=true;video.play().catch(e=>{if(attempt===version&&e.name!=='AbortError')failed=true;}).finally(()=>{if(attempt!==version)return;pending=false;if(!job)video.pause();});}}
   function update(dt,blocked,landingReady,rewindTime){
     if(!job)return null;
     const j=job,seconds=Math.min(.05,dt/1000);j.landed=false;
-    if(blocked){video.pause();return j;}
+    if(blocked||suspended){video.pause();return j;}
+    if(j.resumePhase){
+      warm();
+      j.resumeWait+=seconds;
+      if(failed||j.resumeWait>3){
+        j.phase='fallback';j.elapsed=0;j.seek=false;
+      }else{
+        if(video.readyState<1)return j;
+        if(!j.seek){video.currentTime=j.resumeTime/SCALE;j.seek=true;return j;}
+        if(video.seeking||video.readyState<2)return j;
+        j.phase=j.resumePhase;if(j.phase==='prepare')j.seek=false;
+      }
+      delete j.resumePhase;delete j.resumeTime;delete j.resumeWait;
+    }
     if(j.phase==='prepare'){
       j.wait+=seconds;
       if(rewindTime!==undefined)j.time=rewindTime;
@@ -60,7 +80,7 @@ export function createJourneyFlight(){
     return j;
   }
   function reset(){video.pause();job=null;video.dataset.flightPhase='idle';}
-  return {warm,start,update,reset,texture,video,get active(){return !!job;},get job(){return job;},
+  return {warm,start,update,reset,suspendBackground,resumeBackground,texture,video,get active(){return !!job;},get job(){return job;},
     get hasPicture(){return !!job&&job.seek&&!video.seeking&&video.readyState>=2&&job.phase!=='prepare'&&job.phase!=='fallback';},
     dispose(){reset();video.removeEventListener('error',onError);video.removeAttribute('src');video.load();video.remove();texture.dispose();}};
 }

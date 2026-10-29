@@ -1,15 +1,17 @@
 import * as THREE from 'three';
 import { JOURNEY_FPS as FPS, JOURNEY_DURATION as DURATION, JOURNEY_WALL as WALL, JOURNEY_PEEL as PEEL, JOURNEY_FLIGHT_PREROLL, JOURNEY_FLIGHT_PREPARE_AT } from './journey-timing.js';
 import { createJourneyClock } from './journey-clock.js';
-import { createJourneyMedia } from './journey-media.js';
-import { createJourneyAudio } from './journey-audio.js';
-import { createJourneyFlight, FLIGHT_TARGET } from './journey-flight.js';
+import { createJourneyMedia } from './journey-media.js?v=20261030-video1';
+import { createJourneyAudio } from './journey-audio.js?v=20261030-video1';
+import { createJourneyFlight, FLIGHT_TARGET } from './journey-flight.js?v=20261030-video1';
 import { JOURNEY_EDIT } from './journey-edit.js';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const smooth=v=>{v=clamp(v);return v*v*(3-2*v)};
 const START=.80,END=1.90,ENTRY_START=.70,ENTER=1.8;
 export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLang,onGallery,onSeek}){
   const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const mobile=matchMedia('(pointer: coarse)').matches||Boolean(navigator.connection?.saveData);
+  let backgroundSuspended=false;
   const hall=cinema.halls[3];hall.externalMedia=true;
   // Keep the VGENT screen clear before entry as well as during the camera move.
   hall.screenMaterial.fog=false;
@@ -66,7 +68,15 @@ export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLan
     const isGallery=state==='gallery',exiting=state==='exiting';
     document.body.classList.toggle('journey-active',state!=='cinema'&&!isGallery);document.body.classList.toggle('journey-exit',exiting);document.body.classList.toggle('journey-gallery',isGallery);document.body.classList.toggle('collection',isGallery);
     canvas.style.visibility='';canvas.style.opacity='1';
-    if(isGallery){gate=performance.now();onGallery();}
+    if(isGallery){gate=performance.now();suspendBackground();onGallery();}
+  }
+  function suspendBackground(){
+    if(backgroundSuspended)return;backgroundSuspended=true;
+    media.suspendBackground();flight.suspendBackground();music.suspendBackground();
+  }
+  function resumeBackground(){
+    if(!backgroundSuspended)return;backgroundSuspended=false;
+    media.resumeBackground();flight.resumeBackground();music.resumeBackground();
   }
   function command(sign){
     if(sign!==clock.direction||clock.paused)media.prepare(sign,clock.time,clock.velocity);
@@ -74,6 +84,7 @@ export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLan
   }
   listen(retry,'click',()=>{failed=false;media.retry();});
   function enter(){
+    resumeBackground();
     // Capture the actual displayed pose, including the cinema's remaining inertia.
     // Never snap to its .80 waypoint before beginning the fullscreen dolly.
     entryProgress=lastCinemaProgress;
@@ -93,7 +104,7 @@ export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLan
       if(scrollY>1||sign>0)return false;
       if(reduceMotion)return false;
       if(gap<160||now-gate<160)return true;
-      clock.set(DURATION);command(-1);setState('exiting');scrollTo(0,0);return true;
+      resumeBackground();clock.set(DURATION);command(-1);setState('exiting');scrollTo(0,0);return true;
     }
     if(state==='cinema'){
       approachDirection=sign;
@@ -104,8 +115,8 @@ export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLan
     // Direction commands are immediate; smoothing belongs to the clock, not input delays.
     command(sign);return true;
   }
-  function reset(){flight.reset();music.reset();clock.set(0);setState('cinema');approachDirection=0;entryProgress=START;sampledPose=false;incomingVelocity.set(0,0,0);incomingTurn.identity();entryTangent.set(0,0,0);cinema.pose(START,poseCamera,0,0);basePosition.copy(poseCamera.position);baseQuaternion.copy(poseCamera.quaternion);turnControl.copy(baseQuaternion);media.reset();waiting=0;gallery.clearOverrides();panel.hidden=true;document.body.style.setProperty('--vgent-labels','0');hall.screenMaterial.map=poster;material.uniforms.image.value=poster;material.uniforms.decodeVideo.value=0;onSeek(START);}
-  function skip(){flight.reset();music.stop();media.pause();clock.set(DURATION);setState('gallery');gallery.clearOverrides();onSeek(END);scrollTo(0,0);}
+  function reset(){resumeBackground();flight.reset();music.reset();clock.set(0);setState('cinema');approachDirection=0;entryProgress=START;sampledPose=false;incomingVelocity.set(0,0,0);incomingTurn.identity();entryTangent.set(0,0,0);cinema.pose(START,poseCamera,0,0);basePosition.copy(poseCamera.position);baseQuaternion.copy(poseCamera.quaternion);turnControl.copy(baseQuaternion);media.reset();waiting=0;gallery.clearOverrides();panel.hidden=true;document.body.style.setProperty('--vgent-labels','0');hall.screenMaterial.map=poster;material.uniforms.image.value=poster;material.uniforms.decodeVideo.value=0;onSeek(START);}
+  function skip(){flight.reset();music.stop();media.pause();clock.set(DURATION);setState('gallery');suspendBackground();gallery.clearOverrides();onSeek(END);scrollTo(0,0);}
   function replay(){reset();lastCinemaProgress=START;cinema.pose(START,camera,0,0);enter();}
   function returnToCinema(){reset();}
   function enterWork(){
@@ -119,10 +130,13 @@ export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLan
   listen(skipButton,'click',enterWork);
   const suspend=()=>{if(document.hidden){clock.suspend();music.stop();}};listen(document,'visibilitychange',suspend);listen(window,'blur',()=>{if(!['cinema','gallery'].includes(state)){clock.suspend();music.stop();}});
   function update(now,dt,p,enabled,dialogOpen,reduced){
-    if(enabled&&p>.55){media.warm();flight.warm();}
+    if(dialogOpen||document.hidden)suspendBackground();
+    if(enabled&&!backgroundSuspended&&state==='cinema'&&p>(mobile?.68:.55)){
+      media.warm();if(!mobile)flight.warm();
+    }
     hall.screenMaterial.opacity=1;
     if(state==='cinema'){
-      if(enabled&&p>.60){
+      if(enabled&&!backgroundSuspended&&p>(mobile?.68:.60)){
         media.prime();
         if(media.video.readyState>=2&&hall.screenMaterial.map!==media.texture){hall.screenMaterial.map=media.texture;hall.screenMaterial.needsUpdate=true;}
       }
@@ -139,7 +153,7 @@ export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLan
     if(dialogOpen&&!wasDialog)clock.suspend();wasDialog=dialogOpen;
     const active=!['cinema','gallery'].includes(state);
     if(active){
-      const blocked=document.hidden||dialogOpen;
+      const blocked=document.hidden||dialogOpen||backgroundSuspended;
       const stage=flight.job;
       // Stage the full-resolution destination only after the proxy is on screen.
       let landingReady=false,rewindTime;
@@ -179,7 +193,7 @@ export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLan
         onSeek(entryProgress+(END-entryProgress)*t/DURATION);
       }
     }else media.pause();
-    music.update(dt,{active:enabled&&!['cinema','gallery'].includes(state)&&(!flight.active||flight.job.phase==='land'),time:clock.time,velocity:clock.velocity,paused:clock.paused,blocked:document.hidden||dialogOpen||waiting>150});
+    music.update(dt,{active:enabled&&!['cinema','gallery'].includes(state)&&(!flight.active||flight.job.phase==='land'),time:clock.time,velocity:clock.velocity,paused:clock.paused,blocked:document.hidden||dialogOpen||backgroundSuspended||waiting>150});
     failed=failed||media.failed;
     const progress=clamp(clock.time/ENTER);
     if(state==='entering'){
@@ -243,7 +257,9 @@ export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLan
     material.uniforms.opacity.value=1-smooth((clock.time-(PEEL+.85))/.65);
     renderer.setRenderTarget(target);renderer.setClearColor(0,0);renderer.clear();renderer.render(scene,ortho);return true;
   }
-  return {update,render,reset,replay,skip,input,returnToCinema,setSound:music.setSound,audioBlocked:music.blocked,audioUnlocked:music.unlocked,togglePause:()=>clock.toggle(),pause:()=>clock.suspend(),clock,get video(){return media.video;},
+  if(/^#(?:portfolio|work|contact|about|agent|idtalk|tools|art-collections|post-workflow)$/.test(location.hash))suspendBackground();
+  return {update,render,reset,replay,skip,input,returnToCinema,suspendBackground,resumeBackground,
+    setSound:on=>mobile&&state==='cinema'&&on?Promise.resolve():music.setSound(on),audioBlocked:music.blocked,audioUnlocked:()=>mobile&&state==='cinema'||music.unlocked(),togglePause:()=>clock.toggle(),pause:()=>clock.suspend(),clock,get video(){return media.video;},
     pageProgress:p=>state==='cinema'?p:entryProgress+(1-entryProgress)*clock.time/DURATION,
     get state(){return state;},get progress(){return clamp(clock.time/ENTER);},get exitProgress(){return state==='gallery'?1:smooth((clock.time-(DURATION-.8))/.8);},get limit(){return END;},dispose(){events.abort();clock.suspend();music.dispose();flight.dispose();media.dispose();poster.dispose();material.dispose();for(const child of scene.children)child.geometry.dispose();panel.remove();gallery.clearOverrides();}};
 }

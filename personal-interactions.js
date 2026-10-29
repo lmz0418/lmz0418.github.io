@@ -1,32 +1,27 @@
 import {portfolio} from './personal-data.js';
 import {getLang} from './i18n.js';
-import {createCGProjectViewer} from './cg-project-viewer.js';
+import {createCGProjectViewer} from './cg-project-viewer.js?v=20261030-video1';
 import {artCollections} from './art-collections-data.js';
 import {createPSWorkflowViewer} from './ps-workflow.js';
+import {getFilmPlayer} from './film-player.js?v=20261030-video1';
 const cgViewer=createCGProjectViewer(getLang,{additionalEntries:artCollections});
 const psWorkflow=createPSWorkflowViewer(getLang);
 const all=[...portfolio.projects,...portfolio.cgProjects];
 const $=id=>document.getElementById(id);
 const en=()=>getLang()==='en';
 const film=$('fullFilm'),dialog=$('filmDialog');
+const filmPlayer=getFilmPlayer();
 dialog.setAttribute('aria-labelledby','filmTitle');
 const context=document.createElement('div');context.className='film-context';dialog.append(context);
-const errorBox=document.createElement('div');errorBox.className='film-error';errorBox.hidden=true;dialog.append(errorBox);
 function filmInfo(){
- const src=film.getAttribute('src')||'';const item=all.find(p=>p.film===src||p.processFilm===src);context.replaceChildren();errorBox.hidden=true;
+ const src=film.getAttribute('src')||'';const item=all.find(p=>p.film===src||p.processFilm===src);context.replaceChildren();
  if(!item){context.hidden=true;return}context.hidden=false;
  const text=document.createElement('p');text.textContent=(en()?item.summaryEn||item.summary:item.summary);
  const link=document.createElement('a');link.href='project.html?id='+item.id;link.textContent=en()?'View visual details ↗':'查看美术详情 ↗';context.append(text,link);
 }
 new MutationObserver(filmInfo).observe(film,{attributes:true,attributeFilter:['src']});
-film.addEventListener('error',()=>{
- if(!dialog.open||!film.getAttribute('src'))return;
- errorBox.replaceChildren();const p=document.createElement('span');p.textContent=en()?'This film could not load.':'影片暂时未能加载。';
- const retry=document.createElement('button');retry.textContent=en()?'Retry':'重新加载';retry.onclick=()=>{errorBox.hidden=true;film.load();film.play().catch(()=>{})};
- const link=document.createElement('a');link.href=film.getAttribute('src');link.target='_blank';link.rel='noopener';link.textContent=en()?'Open video ↗':'直接打开影片 ↗';errorBox.append(p,retry,link);errorBox.hidden=false;
-});
 dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close()}});
-function openFilm(src,title){$('filmTitle').textContent=title;film.src=src;film.muted=false;dialog.showModal();film.play().catch(()=>{});}
+function openFilm(src,title){filmPlayer.open({src,title,poster:all.find(p=>p.film===src||p.processFilm===src)?.cover});}
 
 const viewer=document.createElement('dialog');viewer.className='image-viewer';viewer.setAttribute('aria-label','作品图片');
 viewer.innerHTML='<header><p></p><button type="button" class="image-close">关闭 ×</button></header><div class="image-stage"><img alt=""></div><nav><button type="button" class="image-prev">←</button><span class="image-counter"></span><button type="button" class="image-next">→</button></nav>';
@@ -41,7 +36,7 @@ viewer.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRigh
 document.addEventListener('click',e=>{
  const psTrigger=e.target.closest('[data-ps-workflow]');if(psTrigger){e.preventDefault();e.stopImmediatePropagation();document.querySelectorAll('video').forEach(v=>v.pause());psWorkflow.open();return}
  const artTrigger=e.target.closest('[data-art-collection]');if(artTrigger){e.preventDefault();e.stopImmediatePropagation();document.querySelectorAll('video').forEach(v=>v.pause());cgViewer.open(artTrigger.dataset.artCollection);return}
- const cgTrigger=e.target.closest('[data-cg-project]');if(cgTrigger){e.preventDefault();e.stopImmediatePropagation();document.querySelectorAll('video').forEach(v=>v.pause());cgViewer.open(cgTrigger.dataset.cgProject);return}
+ const cgTrigger=e.target.closest('[data-cg-project]');if(cgTrigger){e.preventDefault();e.stopImmediatePropagation();document.querySelectorAll('video').forEach(v=>v.pause());window.dispatchEvent(new Event('portfolio-film-open'));cgViewer.open(cgTrigger.dataset.cgProject);return}
  const action=e.target.closest('.product-action');if(action&&/\.mp4$/.test(action.getAttribute('href')||'')){e.preventDefault();openFilm(action.getAttribute('href'),action.textContent.replace(/[↗→]/g,''));return}
  const card=e.target.closest('.work-card');if(card){const item=all.find(p=>p.id===card.dataset.work);if(item&&!item.film&&e.target.closest('.work-image')){e.preventDefault();const pics=item.stills?.length?item.stills:item.chapters?.map(c=>c.image)||[item.cover];openImages(pics,en()?item.titleEn||item.title:item.title);return}}
  const picture=e.target.closest('.team-photo,.tool-shot');if(picture){const img=picture.querySelector('img');if(img)openImages([img.getAttribute('src')],picture.parentElement.querySelector('h3,h4')?.textContent||'MINGZE LI')}

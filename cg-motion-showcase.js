@@ -26,8 +26,13 @@ export function createCGMotionShowcase(getLang) {
   let events = null;
   let selected = 'film';
   let disposed = false;
+  let videoToken = 0;
+  let playbackTimer = null;
 
   function releaseVideo() {
+    ++videoToken;
+    clearTimeout(playbackTimer);
+    playbackTimer = null;
     if (!video) return;
     video.pause();
     video.removeAttribute('src');
@@ -80,6 +85,7 @@ export function createCGMotionShowcase(getLang) {
     video.playsInline = true;
     video.preload = 'none';
     video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
     const play = make('button', 'cg-motion-play');
     play.type = 'button';
     const playIcon = make('span', 'cg-motion-play-icon', '▶');
@@ -89,6 +95,10 @@ export function createCGMotionShowcase(getLang) {
     const error = make('div', 'cg-motion-error');
     error.hidden = true;
     error.setAttribute('role', 'status');
+    error.setAttribute('aria-live', 'polite');
+    // Leave native play, seek and fullscreen controls reachable during a retry.
+    error.style.bottom = '48px';
+    error.style.padding = '12px';
     const message = make('p', '');
     const retry = make('button', '', en ? 'Retry playback' : '重新播放');
     retry.type = 'button';
@@ -107,6 +117,8 @@ export function createCGMotionShowcase(getLang) {
       { id: 'comparison', zh: '白模对比', en: 'Blocking comparison', description: en ? 'Blocking comparison / Camera structure and finished look' : '白模对比 / 镜头结构与最终效果' },
       { id: 'film', zh: '成片', en: 'Final film', description: en ? 'Final film / Light, materials and product detail' : '成片 / 灯光、材质与产品细节' }
     ];
+    let playbackState = 'ready';
+    let playbackRequested = false;
     const buttons = choices.map((choice, index) => {
       const button = make('button', 'cg-motion-tab', en ? choice.en : choice.zh);
       button.type = 'button';
@@ -131,6 +143,9 @@ export function createCGMotionShowcase(getLang) {
 
     function select(id) {
       releaseVideo();
+      playbackRequested = false;
+      playbackState = 'ready';
+      panel.removeAttribute('aria-busy');
       selected = id;
       const choice = choices.find(item => item.id === id) || choices[2];
       const media = study?.media?.[id];
@@ -161,28 +176,82 @@ export function createCGMotionShowcase(getLang) {
       }
     }
 
-    async function playCurrent() {
+    function showPlayback(state) {
+      playbackState = state;
+      panel.setAttribute('aria-busy', String(state === 'loading'));
+      play.hidden = !['ready', 'paused', 'ended'].includes(state);
+      error.hidden = ['ready', 'paused', 'ended', 'playing'].includes(state);
+      retry.hidden = false;
+      retry.textContent = state === 'blocked' ? (en ? 'Play video' : '点击播放') : (en ? 'Reload video' : '重新加载');
+      const messages = {
+        loading: en ? 'Loading video…' : '正在载入视频…',
+        blocked: en ? 'Press play or open the video directly.' : '请点击播放，或直接打开视频。',
+        error: en ? 'Playback failed. Reload or open the video directly.' : '视频未能播放，可重新加载或直接打开。',
+        timeout: en ? 'Loading is taking longer. Reload or open the video directly.' : '加载用时较长，可重新加载或直接打开视频。'
+      };
+      message.textContent = messages[state] || '';
+    }
+    function waitForPlayback() {
+      if (playbackTimer !== null) return;
+      const token = videoToken;
+      playbackTimer = setTimeout(() => {
+        playbackTimer = null;
+        if (token === videoToken && !disposed && playbackRequested) showPlayback('timeout');
+      }, 12000);
+    }
+    function playbackFailed(failure, token) {
+      if (token !== videoToken || disposed || events?.signal.aborted) return;
+      clearTimeout(playbackTimer); playbackTimer = null;
+      playbackRequested = false;
+      showPlayback(failure?.name === 'NotAllowedError' ? 'blocked' : 'error');
+    }
+    function playCurrent() {
       if (!video?.getAttribute('src')) return;
-      const currentVideo = video;
-      error.hidden = true;
-      try { await currentVideo.play(); }
-      catch (failure) {
-        if (failure.name === 'AbortError' || video !== currentVideo || events?.signal.aborted) return;
-        message.textContent = en ? 'Playback did not start. Try the player controls or open the video.' : '视频未能开始播放，可重试或直接打开视频。';
-        retry.hidden = false;
-        error.hidden = false;
-      }
+      const token = videoToken;
+      playbackRequested = true;
+      showPlayback('loading'); waitForPlayback();
+      // Do not await a metadata event before play(): iOS needs the tap gesture.
+      let attempt;
+      try { attempt = video.play(); }
+      catch (failure) { playbackFailed(failure, token); return; }
+      Promise.resolve(attempt).catch(failure => playbackFailed(failure, token));
     }
     listen(play, 'click', playCurrent);
-    listen(retry, 'click', () => { video.load(); playCurrent(); });
-    listen(video, 'play', () => { play.hidden = true; error.hidden = true; });
-    listen(video, 'ended', () => { play.hidden = false; });
+    listen(retry, 'click', () => {
+      if (playbackState !== 'blocked') {
+        ++videoToken;
+        clearTimeout(playbackTimer); playbackTimer = null;
+        video.load();
+      }
+      playCurrent();
+    });
+    listen(video, 'play', () => {
+      if (!video.getAttribute('src') || video.paused) return;
+      playbackRequested = true; showPlayback('loading'); waitForPlayback();
+    });
+    listen(video, 'playing', () => {
+      if (!video.getAttribute('src') || video.paused) return;
+      clearTimeout(playbackTimer); playbackTimer = null;
+      playbackRequested = true; showPlayback('playing');
+    });
+    for (const event of ['waiting', 'stalled']) listen(video, event, () => {
+      if (event === 'stalled' && video.readyState >= 3) return;
+      if (video.getAttribute('src') && playbackRequested && !video.paused) {
+        showPlayback('loading'); waitForPlayback();
+      }
+    });
+    listen(video, 'pause', () => {
+      if (!video.getAttribute('src') || !video.paused || video.ended || playbackState === 'ready') return;
+      clearTimeout(playbackTimer); playbackTimer = null;
+      playbackRequested = false;
+      if (['playing', 'loading', 'timeout'].includes(playbackState)) showPlayback('paused');
+    });
+    listen(video, 'ended', () => {
+      clearTimeout(playbackTimer); playbackTimer = null;
+      playbackRequested = false; showPlayback('ended');
+    });
     listen(video, 'error', () => {
-      if (!video.getAttribute('src')) return;
-      play.hidden = true;
-      message.textContent = en ? 'The video could not load. Retry or open it directly.' : '视频暂时无法载入，可以重试或直接打开。';
-      retry.hidden = false;
-      error.hidden = false;
+      if (video.getAttribute('src') && video.error) playbackFailed(video.error, videoToken);
     });
     listen(document, 'visibilitychange', () => { if (document.hidden) video?.pause(); });
     listen(window, 'pagehide', () => video?.pause());

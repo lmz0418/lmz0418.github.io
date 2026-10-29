@@ -19,22 +19,6 @@
   <link rel="stylesheet" href="cursor.css?v=20261030-smooth1">
   <link rel="stylesheet" href="portfolio-home.css?v=20261030-smooth1">
   <script defer src="cursor.js?v=20261030-smooth1"></script>
-  <script>
-    // A lightweight cinema for wheel and touch; the native portfolio is the fallback.
-    (()=>{
-      let auto=(!location.hash||location.hash==='#cinema')&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&!navigator.connection?.saveData;
-      const guard=new AbortController();
-      const cancelAuto=()=>{auto=false;document.documentElement.classList.remove('desktop-cinema-pending');guard.abort();};
-      if(auto)document.documentElement.classList.add('desktop-cinema-pending');
-      document.addEventListener('click',event=>{if(event.target.closest('a[href="#portfolio"],a[href="#contact"]'))cancelAuto();},{capture:true,signal:guard.signal});
-      addEventListener('hashchange',()=>{if(location.hash&&location.hash!=='#cinema')cancelAuto();},{signal:guard.signal});
-      const watchdog=setTimeout(cancelAuto,6000);
-      addEventListener('DOMContentLoaded',()=>import('./desktop-cinema.js?v=20261030-touch1')
-        .then(module=>module.initDesktopCinema({auto:auto&&(!location.hash||location.hash==='#cinema')}))
-        .catch(()=>document.documentElement.classList.remove('desktop-cinema-pending'))
-        .finally(()=>{clearTimeout(watchdog);guard.abort();}),{once:true});
-    })();
-  </script>
   <style>html.desktop-cinema-pending #portfolio{display:none!important}</style>
   <script type="module" src="portfolio-home.js?v=20261030-smooth1"></script>
 </head>
@@ -56,5 +40,27 @@
     <footer><a href="#contact" data-i18n="footer.client">联系李明泽 ↗</a><span>MINGZE LI</span></footer>
   </section>
   <dialog id="filmDialog"><button id="closeFilm" aria-label="关闭影片" data-i18n="dialog.close" data-i18n-attr="aria-label:dialog.closeLabel">关闭 ×</button><h2 id="filmTitle"></h2><video id="fullFilm" controls playsinline preload="none"></video></dialog>
+  <script>
+    // The required markup exists here. Do not wait for every portfolio module.
+    (()=>{
+      let auto=(!location.hash||location.hash==='#cinema')&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&!navigator.connection?.saveData;
+      const guard=new AbortController();
+      const cancelAuto=()=>{auto=false;document.documentElement.classList.remove('desktop-cinema-pending');guard.abort();};
+      if(auto){
+        document.documentElement.classList.add('desktop-cinema-pending');
+        for(const [href,rel,as] of [
+          ['./desktop-cinema-scene.js?v=20261030-touch2','modulepreload',''],
+          ['./desktop-cinema.css?v=20261030-touch2','preload','style']
+        ]){const link=document.createElement('link');link.rel=rel;link.href=href;if(as)link.as=as;document.head.append(link);}
+      }
+      document.addEventListener('click',event=>{if(event.target.closest('a[href="#portfolio"],a[href="#contact"]'))cancelAuto();},{capture:true,signal:guard.signal});
+      addEventListener('hashchange',()=>{if(location.hash&&location.hash!=='#cinema')cancelAuto();},{signal:guard.signal});
+      const watchdog=setTimeout(cancelAuto,6000);
+      import('./desktop-cinema.js?v=20261030-touch2')
+        .then(module=>module.initDesktopCinema({auto:auto&&(!location.hash||location.hash==='#cinema')}))
+        .catch(()=>document.documentElement.classList.remove('desktop-cinema-pending'))
+        .finally(()=>{clearTimeout(watchdog);guard.abort();});
+    })();
+  </script>
 </body>
 </html>

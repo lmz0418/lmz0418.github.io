@@ -108,7 +108,7 @@ async function open(){
   opening=id;
   if(!cssReady){
     cssReady=new Promise((resolve,reject)=>{
-      css=document.createElement('link');css.rel='stylesheet';css.href=new URL('./desktop-cinema.css?v=20261030-touch1',import.meta.url).href;
+      css=document.createElement('link');css.rel='stylesheet';css.href=new URL('./desktop-cinema.css?v=20261030-touch2',import.meta.url).href;
       const timer=setTimeout(()=>reject(new Error('Cinema style timeout')),4000);
       css.onload=()=>{clearTimeout(timer);resolve();};
       css.onerror=()=>{clearTimeout(timer);reject(new Error('Cinema style unavailable'));};
@@ -199,7 +199,7 @@ async function open(){
   listen(window,'languagechange',()=>localize(session));
   session.loadTimer=setTimeout(()=>{if(current===session)close();},6000);
   try{
-    sceneModule??=import('./desktop-cinema-scene.js?v=20261030-touch1');
+    sceneModule??=import('./desktop-cinema-scene.js?v=20261030-touch2');
     const {createDesktopCinema}=await sceneModule;
     if(id!==generation||current!==session)return;
     session.engine=createDesktopCinema({canvas:session.canvas,mobile:session.mobile,onInvalidate:()=>schedule(session),onFatal:()=>{if(current===session)close();}});

@@ -1,4 +1,4 @@
-import {JOURNEY_DURATION} from './journey-timing.js';
+import {JOURNEY_DURATION} from './journey-timing.js?v=20261030-smooth1';
 // Direction commands are idempotent. Wheel distance never changes playback speed.
 // A one-shot flight has unit-speed endpoints and a smooth acceleration hump.
 export function journeyFlightAt(from,to,seconds,duration=1.25){

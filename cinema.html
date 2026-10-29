@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#050505">
+  <meta name="description" content="李明泽 · AI 美术、视觉设计与 CG 动态作品集。">
+  <title>MAKE BELIEVE — 李明泽作品集</title>
+  <link rel="canonical" href="https://lmz0418.github.io/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="李明泽 · AI 美术与视觉设计作品集">
+  <meta property="og:description" content="MAKE BELIEVE · AI 广告美术、视觉开发、CG 与动态设计。">
+  <meta property="og:url" content="https://lmz0418.github.io/">
+  <meta property="og:image" content="https://lmz0418.github.io/assets/mingze-studio-portrait.jpg">
+  <script>
+    // Runs before the cinema's imports, SVG, media, or WebGL initialization.
+    // Even a failed module cannot leave the visitor behind the preparation dot.
+    (()=>{
+      let done=false,failed=false;
+      const started=performance.now();
+      const finish=()=>{done=true;clearTimeout(timer)};
+      async function fallback(){
+        if(done||failed)return;
+        if(!document.body){setTimeout(fallback,100);return}
+        failed=true;clearTimeout(timer);
+        dispatchEvent(new Event('cinema-startup-failed'));
+        const english=document.documentElement.lang==='en';
+        for(const id of ['cinemaPreparation','opening'])document.getElementById(id).hidden=true;
+        const style=document.createElement('style');
+        style.textContent='body.cinema-fallback main>*:not(header){display:none!important}body.cinema-fallback header{opacity:1!important}body.cinema-fallback #portfolio{display:block!important;margin-top:0!important;transform:none!important;padding-top:110px}body.cinema-fallback .work-card{opacity:1!important;transform:none!important}body.cinema-fallback .guide-layer{display:none!important}body.cinema-fallback .work-column{transform:none!important}';
+        document.head.append(style);document.body.classList.add('collection','ready','cinema-fallback');
+        const header=document.getElementById('header');header.style.zIndex='8';document.body.append(header);
+        const portfolio=document.getElementById('portfolio'),notice=document.createElement('p');
+        notice.style.cssText='margin:0 0 32px;color:#aaa;line-height:1.8';
+        notice.append(english?'The cinema could not start. Browse our work below. ':'影院暂时无法启动，已为你打开作品集。 ');
+        const retry=document.createElement('a');retry.href=location.href;retry.textContent=english?'Retry cinema ↗':'重新进入影院 ↗';notice.append(retry);
+        const basic=document.createElement('a');basic.href='resume.html';basic.style.marginLeft='20px';basic.textContent=english?'View résumé ↗':'查看个人简历 ↗';notice.append(basic);portfolio.prepend(notice);
+        for(const id of ['home','replay'])document.getElementById(id).addEventListener('click',event=>{event.preventDefault();event.stopImmediatePropagation();location.reload()},{capture:true});
+        window.scrollTo(0,0);
+        try{
+          // Independent of Three.js and the cinema imports. Links remain usable
+          // when the WebGL app could not build its interactive cards.
+          const {works}=await import('./works.js?v=20261030-smooth1');
+          const grid=document.getElementById('workGrid');grid.replaceChildren();
+          const columns=Array.from({length:4},()=>{const col=document.createElement('div');col.className='work-column';grid.append(col);return col});
+          works.forEach((work,index)=>{
+            const card=document.createElement('article');card.className='work-card';card.dataset.work=work.id;
+            const link=document.createElement('a');link.className='work-image';link.href=work.video||work.url||work.poster;
+            if(work.cg)link.dataset.cgProject=work.id;
+            const img=document.createElement('img');img.src=work.poster;img.alt=english&&work.titleEn?work.titleEn:work.title;img.loading='lazy';link.append(img);
+            const caption=document.createElement('div'),title=document.createElement('h3');title.textContent=img.alt;caption.append(title);card.append(link,caption);columns[index%4].append(card);
+          });
+        }catch(error){console.warn('Basic project link remains available:',error)}
+      }
+      const check=()=>{if(!done&&performance.now()-started>=20000)fallback()};
+      const timer=setTimeout(check,20000);
+      document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});
+      window.cinemaStartup={finish,fail:fallback,failed:()=>failed};
+    })();
+  </script>
+  <link rel="icon" href="favicon.svg">
+  <link rel="stylesheet" href="depth-home.css?v=20261030-smooth1">
+  <link rel="stylesheet" href="personal.css?v=20261030-smooth1">
+  <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+  <script defer src="vendor/gsap.min.js"></script>
+  <script type="module" src="depth-home.js?v=20261030-smooth1"></script>
+  <link rel="stylesheet" href="cursor.css?v=20261030-smooth1">
+  <script defer src="cursor.js?v=20261030-smooth1"></script>
+  <link rel="stylesheet" href="brand-overrides.css?v=20261030-smooth1">
+</head>
+<body>
+  <main aria-label="MINGZE LI AI 影院" data-i18n-attr="aria-label:main.label">
+    <div id="cinemaPreparation" class="cinema-preparation" aria-label="正在准备放映" data-i18n-attr="aria-label:prep.label">
+      <span class="preparation-dot" aria-hidden="true"></span>
+      <p id="preparationStatus" class="sr-only" role="status" data-i18n="prep.text">正在准备放映</p>
+    </div>
+    <canvas tabindex="0" id="filmSpace" aria-label="滚动向前进入影像，向上滚动返回" data-i18n-attr="aria-label:canvas.scroll"></canvas>
+    <div id="opening" class="opening">
+      <span class="opening-dot" aria-hidden="true"></span>
+      <div class="opening-logo" aria-hidden="true">
+        <img class="opening-mark" src="logo/make-believe.svg" alt="">
+      </div>
+      <button id="skip" type="button" disabled data-i18n="skip">跳过</button>
+    </div>
+    <div class="camera" id="camera" aria-hidden="true">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <span class="camera-rec"><i></i> MINGZE LI</span>
+      <span class="camera-format">24.000 FPS / CN</span>
+      <span class="camera-time" id="timecode">00:00:00</span>
+      <span class="camera-live">LIVE — AI CINEMA</span>
+      <span class="crosshair"></span>
+    </div>
+    <header id="header"><a href="#" id="home" aria-label="返回影像入口" data-i18n-attr="aria-label:home.label">MINGZE LI</a><nav><a href="#portfolio" id="workNav" data-i18n="nav.work">作品</a><a href="#contact" data-i18n="nav.client">联系</a><button id="replay" type="button" data-i18n="nav.replay">重播</button><button id="lang" class="lang-toggle" type="button" aria-label="切换语言" title="切换语言" data-i18n-attr="aria-label:lang.label;title:lang.label"><span data-lang="zh">中</span><i>/</i><span data-lang="en">EN</span></button></nav></header>
+    <div id="filmLabels" aria-label="影片信息" data-i18n-attr="aria-label:labels.label"></div>
+    <div class="entrance" id="entrance"><p>AI CINEMA.</p><span>ENTERING AI CINEMA</span></div>
+    <div class="ending" id="ending"><span>MINGZE LI</span><button id="restart" type="button" data-i18n="ending.restart">重新进入 ↗</button><a href="#contact" data-i18n="ending.client">联系李明泽 ↗</a></div>
+    <div class="controls" id="controls"><span id="progress">00 / 100</span><button id="sound" type="button" aria-pressed="true">SOUND ON</button></div>
+    <p class="sr-only" id="status" aria-live="polite" data-i18n="status.opening">正在播放开场</p>
+    <noscript><p class="no-script" data-i18n="noscript">请启用 JavaScript 以观看动态影像首页。</p></noscript>
+  </main>
+  <div class="film-cursor" id="filmCursor" aria-hidden="true"><svg viewBox="0 0 76 76"><path d="M24 7H7V24M52 7H69V24M7 52V69H24M52 69H69V52" /></svg><i class="film-cursor-dot"></i></div>
+  <section id="portfolio" aria-label="所有作品" data-i18n-attr="aria-label:portfolio.label">
+
+    <div id="workGrid" class="work-grid"></div>
+    <section class="numbers" id="numbers" aria-label="项目数据" data-i18n-attr="aria-label:numbers.label">
+      <p class="numbers-eyebrow" data-i18n="numbers.eyebrow">用数字说话</p>
+      <h2 class="numbers-title" data-i18n="numbers.title">用作品，呈现美术的不同维度。</h2>
+      <div class="numbers-grid" id="numbersGrid"></div>
+    </section>
+    <div class="client-marquee" id="clientMarquee" aria-label="合作品牌" data-i18n-attr="aria-label:marquee.label"><div class="client-track" id="clientTrack"></div></div>
+    <section class="agent" id="agent" aria-label="美术过程" data-i18n-attr="aria-label:agent.label">
+      <div class="agent-head">
+        <p class="agent-eyebrow" data-i18n="agent.eyebrow">ART DIRECTION</p>
+        <h2 class="agent-title" data-i18n="agent.title">从设定，到具体的视觉。</h2>
+        <p class="agent-lead" data-i18n="agent.lead">角色、场景、光影与质感，组成我的美术实践。</p>
+      </div>
+      <div class="agent-bases" id="agentBases"></div>
+      <div class="agent-banner">
+        <p data-i18n="agent.banner">将导演创意转化为广告的视觉风格。</p>
+        <span data-i18n="agent.bannerSub">以具体画面呈现美术方向与质感。</span>
+      </div>
+    </section>
+    <section class="sec" id="knowledge" aria-label="知识库" data-i18n-attr="aria-label:kb.label"><div id="kbBody"></div></section>
+    <section class="sec" id="team" aria-label="美术实践" data-i18n-attr="aria-label:team.label"><div id="teamBody"></div></section>
+    <section class="sec" id="about" aria-label="关于李明泽" data-i18n-attr="aria-label:about.label"><div id="aboutBody"></div></section>
+    <section class="band" id="idtalk" aria-label="CG 与动态设计" data-i18n-attr="aria-label:idtalk.label"><div id="idtalkBody"></div></section>
+    <section class="sec" id="tools" aria-label="制作方法与工具" data-i18n-attr="aria-label:tools.label"><div id="toolsBody"></div></section>
+    <section class="sec" id="clientsDetail" aria-label="合作品牌" data-i18n-attr="aria-label:clients.label"><div id="clientsBody"></div></section>
+    <section class="sec contact" id="contact" aria-label="联系我们" data-i18n-attr="aria-label:contact.label"><div id="contactBody"></div></section>
+    <footer><a href="#contact" data-i18n="footer.client">联系李明泽 ↗</a><span>MINGZE LI</span></footer>
+  </section>
+  <dialog id="filmDialog"><button id="closeFilm" aria-label="关闭影片" data-i18n="dialog.close" data-i18n-attr="aria-label:dialog.closeLabel">关闭 ×</button><h2 id="filmTitle"></h2><video id="fullFilm" controls playsinline preload="none"></video></dialog>
+<script type="module" src="personal-interactions.js?v=20261030-smooth1"></script>
+<a class="cinema-return" data-return-portfolio href="./#portfolio">返回作品 / WORKS ↗</a>
+<style>.cinema-return{position:fixed;left:24px;bottom:24px;z-index:50;border:1px solid #555;border-radius:30px;padding:12px 18px;background:#08090ae8;color:#fff;font:12px Arial,sans-serif}@media(max-width:650px){.cinema-return{bottom:20px;left:18px;padding:10px 14px}}</style>
+<script>document.addEventListener('click',function(event){const link=event.target.closest('[data-return-portfolio],#workNav,a[href="#contact"]');if(!link)return;event.preventDefault();event.stopImmediatePropagation();location.href=link.getAttribute('href')==='#contact'?'./#contact':'./#portfolio';},true);</script>
+</body>
+</html>

@@ -1,9 +1,9 @@
-import {portfolio} from './personal-data.js';
+import {portfolio} from './personal-data.js?v=20261030-smooth1';
 import {getLang} from './i18n.js';
-import {createCGProjectViewer} from './cg-project-viewer.js?v=20261030-video1';
-import {artCollections} from './art-collections-data.js';
-import {createPSWorkflowViewer} from './ps-workflow.js';
-import {getFilmPlayer} from './film-player.js?v=20261030-video1';
+import {createCGProjectViewer} from './cg-project-viewer.js?v=20261030-smooth1';
+import {artCollections} from './art-collections-data.js?v=20261030-smooth1';
+import {createPSWorkflowViewer} from './ps-workflow.js?v=20261030-smooth1';
+import {getFilmPlayer} from './film-player.js?v=20261030-smooth1';
 const cgViewer=createCGProjectViewer(getLang,{additionalEntries:artCollections});
 const psWorkflow=createPSWorkflowViewer(getLang);
 const all=[...portfolio.projects,...portfolio.cgProjects];
@@ -14,7 +14,7 @@ const filmPlayer=getFilmPlayer();
 dialog.setAttribute('aria-labelledby','filmTitle');
 const context=document.createElement('div');context.className='film-context';dialog.append(context);
 function filmInfo(){
- const src=film.getAttribute('src')||'';const item=all.find(p=>p.film===src||p.processFilm===src);context.replaceChildren();
+ const src=film.dataset.originalSrc||film.getAttribute('src')||'';const item=all.find(p=>p.film===src||p.processFilm===src);context.replaceChildren();
  if(!item){context.hidden=true;return}context.hidden=false;
  const text=document.createElement('p');text.textContent=(en()?item.summaryEn||item.summary:item.summary);
  const link=document.createElement('a');link.href='project.html?id='+item.id;link.textContent=en()?'View visual details ↗':'查看美术详情 ↗';context.append(text,link);
@@ -50,7 +50,7 @@ function enhance(){
   if(host.querySelector('.personal-actions'))continue;
   const bar=document.createElement('div');bar.className='personal-actions';
   const resume=document.createElement('a');resume.href='resume.html';resume.className='primary';resume.textContent=en()?'VIEW RESUME ↗':'查看简历 ↗';
-  const pdf=document.createElement('a');pdf.href='assets/mingze-li-resume.pdf';pdf.download='李明泽_AI美术与视觉设计_简历.pdf';pdf.textContent=en()?'DOWNLOAD PDF ↓':'下载简历 ↓';
+  const pdf=document.createElement('a');pdf.href='assets/mingze-li-resume-20261029.pdf';pdf.download='李明泽_AI美术与视觉设计_简历.pdf';pdf.textContent=en()?'DOWNLOAD PDF ↓':'下载简历 ↓';
   const wechat=document.createElement('button');wechat.type='button';wechat.textContent=en()?'COPY WECHAT':'复制微信';
   const status=document.createElement('p');status.className='copy-feedback';status.setAttribute('role','status');
   wechat.onclick=async()=>{try{await navigator.clipboard.writeText(portfolio.person.wechat);status.textContent=en()?'Copied: '+portfolio.person.wechat:'已复制微信号：'+portfolio.person.wechat}catch{status.textContent='WeChat: '+portfolio.person.wechat}};

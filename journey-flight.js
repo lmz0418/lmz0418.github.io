@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import {journeyFlightAt} from './journey-clock.js';
-import {JOURNEY_FLIGHT_DURATION as DURATION,JOURNEY_FLIGHT_ANTICIPATION as ANTICIPATION} from './journey-timing.js';
-import { JOURNEY_EDIT } from './journey-edit.js';
+import {journeyFlightAt} from './journey-clock.js?v=20261030-smooth1';
+import {JOURNEY_FLIGHT_DURATION as DURATION,JOURNEY_FLIGHT_ANTICIPATION as ANTICIPATION} from './journey-timing.js?v=20261030-smooth1';
+import { JOURNEY_EDIT } from './journey-edit.js?v=20261030-smooth1';
 
 export const FLIGHT_TARGET=JOURNEY_EDIT.flightTarget;
 const SCALE=JOURNEY_EDIT.proxyRate,LAND=.28;

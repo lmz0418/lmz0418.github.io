@@ -1,6 +1,6 @@
 // Editable personal portfolio data. Project order lives in project-order.js.
-import { orderProjects } from './project-order.js';
-import { cgStudies } from './cg-studies-data.js';
+import { orderProjects } from './project-order.js?v=20261030-smooth1';
+import { cgStudies } from './cg-studies-data.js?v=20261030-smooth1';
 
 export const person = {
   "name": "李明泽",
@@ -17,7 +17,7 @@ export const person = {
   "currentWorkEn": "SOMEWHILE · AI Art / Visual Design",
   "emailHref": "mailto:1158609347@qq.com",
   "resume": "resume.html",
-  "resumePdf": "assets/mingze-li-resume.pdf",
+  "resumePdf": "assets/mingze-li-resume-20261029.pdf",
   "portrait": "assets/mingze-studio-portrait.jpg",
   "portraitFallback": "MINGZE LI / 李明泽 文字身份，不使用 AI 项目角色或他人照片冒充本人",
   "tools": [

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { JOURNEY_LAST_FRAME as LAST_FRAME } from './journey-timing.js';
-import { JOURNEY_EDIT } from './journey-edit.js';
+import { JOURNEY_LAST_FRAME as LAST_FRAME } from './journey-timing.js?v=20261030-smooth1';
+import { JOURNEY_EDIT } from './journey-edit.js?v=20261030-smooth1';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 
 // Both directions decode sequentially. Seek only at entry, reversal or an explicit jump.

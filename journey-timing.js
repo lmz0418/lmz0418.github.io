@@ -1,5 +1,5 @@
 // The gallery handoff must complete while the source still has moving frames.
-import { JOURNEY_EDIT } from './journey-edit.js';
+import { JOURNEY_EDIT } from './journey-edit.js?v=20261030-smooth1';
 export const JOURNEY_FPS=JOURNEY_EDIT.fps;
 export const JOURNEY_LAST_FRAME=(JOURNEY_EDIT.frameCount-1)/JOURNEY_FPS;
 export const JOURNEY_DURATION=JOURNEY_LAST_FRAME;

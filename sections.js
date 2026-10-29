@@ -1,6 +1,6 @@
 // Personal content. Counts reflect 11 films and 1 art-study project, plus 6 CG series.
-import { cgStudies } from './cg-studies-data.js';
-import { artCollections } from './art-collections-data.js';
+import { cgStudies } from './cg-studies-data.js?v=20261030-smooth1';
+import { artCollections } from './art-collections-data.js?v=20261030-smooth1';
 
 const acerStudy = cgStudies.find(study => study.id === 'acer');
 const acerCover = acerStudy?.cover || 'assets/cg-studies-20261020/acer-cover.webp';

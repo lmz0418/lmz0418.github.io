@@ -37,7 +37,7 @@
           <span class="ui-eyebrow">A GOOD CONVERSATION IS A START.</span><h2>下一帧，<br>一起想象。<span aria-hidden="true">✳</span></h2><p>关于 AI 广告美术、CG 与动态设计，<br>或是一个还没有形状的想法。</p>
           <a class="contact-email-link" href="mailto:1158609347@qq.com"><span>1158609347@qq.com</span><b aria-hidden="true">↗</b></a>
           <div class="contact-options"><button type="button" data-clipboard="1158609347@qq.com"><span>EMAIL</span>复制邮箱 <b aria-hidden="true">⧉</b></button><button type="button" data-clipboard="lmz-Apr18"><span>WECHAT</span>lmz-Apr18 <b aria-hidden="true">⧉</b></button></div>
-          <a class="contact-resume" href="assets/mingze-li-resume.pdf" download="李明泽_AI美术与视觉设计_简历.pdf">带走一份简历 <span>PDF ↓</span></a><p class="contact-feedback" role="status" aria-live="polite"></p>
+          <a class="contact-resume" href="assets/mingze-li-resume-20261029.pdf" download="李明泽_AI美术与视觉设计_简历.pdf">带走一份简历 <span>PDF ↓</span></a><p class="contact-feedback" role="status" aria-live="polite"></p>
         </section>
         <section class="ui-view index-view" data-view="index" hidden>
           <div class="index-heading"><div><span class="ui-eyebrow">SELECTED WORK / 2026</span><h2>作品索引<span>12</span></h2></div><div class="index-filters" role="group" aria-label="按作品类型筛选"><button type="button" data-filter="all" aria-pressed="true">全部 <sup>12</sup></button><button type="button" data-filter="ai" aria-pressed="false">AI <sup>06</sup></button><button type="button" data-filter="cg" aria-pressed="false">CG <sup>06</sup></button></div></div>

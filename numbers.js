@@ -1,4 +1,4 @@
-import { portfolio } from './personal-data.js';
+import { portfolio } from './personal-data.js?v=20261030-smooth1';
 
 const allProjects = [...portfolio.projects, ...portfolio.cgProjects];
 export const numbers = [

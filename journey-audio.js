@@ -1,7 +1,7 @@
 // Picture decoders stay silent. Both music cues always run forwards: changing
 // direction crossfades cues, never reverses speech or seeks audio every frame.
-import { JOURNEY_EDIT } from './journey-edit.js';
-import { JOURNEY_DURATION } from './journey-timing.js';
+import { JOURNEY_EDIT } from './journey-edit.js?v=20261030-smooth1';
+import { JOURNEY_DURATION } from './journey-timing.js?v=20261030-smooth1';
 export function createJourneyAudio(){
   const mobile=matchMedia('(pointer: coarse)').matches||Boolean(navigator.connection?.saveData);
   const tracks=[['forward',JOURNEY_EDIT.music],['rewind',JOURNEY_EDIT.rewind]].map(([name,src])=>{

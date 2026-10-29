@@ -51,7 +51,7 @@ function createOriginalGuides(){
 // Preserve the supplied guide artwork, extending it to the entire finished gallery.
 export function createGuideLines(){
   const original=createOriginalGuides();if(!original)return null;
-  const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('./guide-camera.css',import.meta.url).href;document.head.append(css);
+  const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('./guide-camera.css?v=20261030-smooth1',import.meta.url).href;document.head.append(css);
   const {layer}=original;layer.classList.add('camera-guide-field');const ns='http://www.w3.org/2000/svg';
   const overlay=document.createElementNS(ns,'svg');overlay.setAttribute('viewBox','0 0 1920 1080');overlay.setAttribute('preserveAspectRatio','none');
   Object.assign(overlay.style,{position:'absolute',left:'0',width:'100%',height:'100vh',overflow:'visible',pointerEvents:'none'});

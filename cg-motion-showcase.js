@@ -1,4 +1,5 @@
-import { cgStudies } from './cg-studies-data.js';
+import { cgStudies } from './cg-studies-data.js?v=20261030-smooth1';
+import { getMediaSources } from './media-sources.js?v=20261030-smooth1';
 
 // The media stays inline. Only an explicit play action starts playback.
 export function createCGMotionShowcase(getLang) {
@@ -7,7 +8,7 @@ export function createCGMotionShowcase(getLang) {
     const css = document.createElement('link');
     css.id = styleId;
     css.rel = 'stylesheet';
-    css.href = new URL('./cg-motion-showcase.css', import.meta.url).href;
+    css.href = new URL('./cg-motion-showcase.css?v=20261030-smooth1', import.meta.url).href;
     document.head.append(css);
   }
   const make = (tag, className, text) => {
@@ -36,6 +37,7 @@ export function createCGMotionShowcase(getLang) {
     if (!video) return;
     video.pause();
     video.removeAttribute('src');
+    delete video.dataset.originalSrc;
     video.load();
   }
 
@@ -109,6 +111,9 @@ export function createCGMotionShowcase(getLang) {
     panel.append(video, play, error);
     const caption = make('p', 'cg-motion-caption');
     caption.setAttribute('aria-live', 'polite');
+    const original = make('a', '', en ? 'Original quality ↗' : '高清原片 ↗');
+    original.target = '_blank'; original.rel = 'noopener'; original.dataset.originalMedia = '';
+    original.style.cssText = 'color:#d8e8ad;margin-left:16px;white-space:nowrap';
     showcase.append(tabs, panel, caption);
     host.append(head, showcase);
 
@@ -165,8 +170,12 @@ export function createCGMotionShowcase(getLang) {
       playLabel.textContent = en ? `Play ${choice.en}` : `播放${choice.zh === 'Demo' ? ' Demo' : choice.zh}`;
       play.setAttribute('aria-label', video.getAttribute('aria-label'));
       if (media?.src) {
-        video.src = media.src;
-        direct.href = media.src;
+        const source = getMediaSources(media.src);
+        video.dataset.originalSrc = media.src;
+        video.src = source.src;
+        direct.href = source.src;
+        original.href = source.originalSrc;
+        if (source.isLite) caption.append(original);
         direct.hidden = false;
       } else {
         message.textContent = en ? 'This video is temporarily unavailable.' : '这段视频暂时无法载入。';

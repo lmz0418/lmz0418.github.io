@@ -1,5 +1,5 @@
 // Cards and case pages share the same data and order.
-import { portfolio } from './personal-data.js';
+import { portfolio } from './personal-data.js?v=20261030-smooth1';
 
 export const works = [...portfolio.projects, ...portfolio.cgProjects].map(project => ({
   id: project.id,

@@ -1,0 +1,54 @@
+/* The portfolio has its own native document. Cinema styles remain available
+   only for shared typography, sections and dialogs; no hidden cinema is built. */
+html{height:auto;overflow-x:clip;overflow-y:auto;overscroll-behavior:auto;scroll-behavior:auto}
+body.portfolio-home{height:auto;min-height:100vh;overflow:visible;background:#08090a;touch-action:auto}
+body.portfolio-home #header{opacity:1;z-index:20;left:24px;right:24px;top:23px;transform:none}
+body.portfolio-home #home{font-size:clamp(24px,2.1vw,36px);letter-spacing:-.055em}
+body.portfolio-home #header nav{gap:26px;align-items:center;padding-top:3px}
+body.portfolio-home #header nav a,body.portfolio-home #header nav button{font:12px ui-monospace,monospace;letter-spacing:.04em}
+body.portfolio-home #portfolio{display:block;margin-top:0;padding:125px 5.5vw 5vw;background-color:#08090a;transform:none;opacity:1;min-height:100vh;isolation:isolate}
+body.portfolio-home #portfolio::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:.18;background-image:linear-gradient(90deg,transparent calc(100% - 1px),#899198 calc(100% - 1px)),linear-gradient(transparent calc(100% - 1px),#899198 calc(100% - 1px));background-size:25% 100%,100% 600px}
+body.portfolio-home #portfolio [data-reveal]{opacity:1!important;transform:none!important;will-change:auto}
+body.portfolio-home .gallery-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:28px;margin:0 0 42px}
+body.portfolio-home .gallery-heading .sec-eyebrow{margin:0;font-size:11px;white-space:nowrap}
+body.portfolio-home .gallery-heading h2{font:500 clamp(23px,2.7vw,42px)/1.25 var(--font-display,Arial);margin:0;letter-spacing:-.025em}
+body.portfolio-home #workCount{font:11px ui-monospace,monospace;color:#999;white-space:nowrap}
+body.portfolio-home #workGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:64px 30px}
+body.portfolio-home .work-card{margin:0;opacity:1!important;transform:none!important;min-width:0}
+body.portfolio-home .work-card .work-image{width:100%;border:0;padding:0;aspect-ratio:16/10;border-radius:24px;overflow:hidden;background:#141617}
+body.portfolio-home .work-card .work-image img{display:block;width:100%;height:100%;object-fit:cover;opacity:1!important;visibility:visible!important;transition:transform .28s ease-out;will-change:auto}
+body.portfolio-home .work-card>div{margin-top:18px;gap:18px}
+body.portfolio-home .work-card h3{font-size:clamp(18px,1.5vw,28px);max-width:72%;line-height:1.25}
+body.portfolio-home .work-card p{font-size:11px;max-width:120px;line-height:1.65}
+.work-open-mark{position:absolute;right:16px;bottom:16px;display:grid;place-items:center;width:34px;height:34px;border:1px solid #ffffff70;border-radius:50%;background:#0008;color:#fff;font:12px Arial,sans-serif;pointer-events:none}
+body.portfolio-home .client-marquee{overflow:visible}
+body.portfolio-home .client-track{width:100%;animation:none!important;transform:none!important}
+body.portfolio-home .client-group{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:28px 45px;width:100%;padding:32px 0}
+body.portfolio-home .client-name{font:600 clamp(20px,2.4vw,36px)/1.2 var(--font-display,Arial);color:#bcbfc3;white-space:nowrap}
+body.portfolio-home .social-reactions{display:none}
+body.portfolio-home .social-wheel{transition:none!important;will-change:auto}
+body.portfolio-home .about-card img{transform:none!important}
+body.portfolio-home #portfolio>.agent,body.portfolio-home #portfolio>.band,body.portfolio-home #portfolio>.sec,body.portfolio-home #numbers{scroll-margin-top:95px}
+body.portfolio-home .work-image:focus-visible,body.portfolio-home a:focus-visible,body.portfolio-home button:focus-visible{outline:2px solid #d6e9ac;outline-offset:5px}
+@media(hover:hover) and (pointer:fine){body.portfolio-home .work-card .work-image:hover img{transform:scale(1.025)}body.portfolio-home .project-title-link:hover{color:#d6e9ac}}
+@media(max-width:1000px) and (min-width:651px){body.portfolio-home #workGrid{gap:44px 20px}body.portfolio-home .gallery-heading{flex-wrap:wrap}body.portfolio-home .work-card>div{display:block}body.portfolio-home .work-card h3{max-width:100%}body.portfolio-home .work-card p{text-align:left;max-width:100%;margin-top:7px}}
+@media(max-width:650px){
+ body.portfolio-home #header{left:20px;right:20px;top:22px;align-items:center}
+ body.portfolio-home #header nav{gap:12px;padding:0}
+ body.portfolio-home #header nav a,body.portfolio-home #header nav button{font-size:10px;letter-spacing:0}
+ body.portfolio-home #cinemaLink{white-space:nowrap;line-height:1.45}
+ body.portfolio-home #portfolio{padding:110px 20px 36px!important}
+ body.portfolio-home #portfolio::before{background-size:50% 100%,100% 500px;opacity:.1}
+ body.portfolio-home .gallery-heading{align-items:flex-start;flex-direction:column;gap:14px;margin-bottom:30px}
+ body.portfolio-home .gallery-heading h2{font-size:29px}
+ body.portfolio-home #workCount{font-size:10px;color:#757a80}
+ body.portfolio-home #workGrid{grid-template-columns:minmax(0,1fr)!important;gap:36px!important}
+ body.portfolio-home .work-card .work-image,body.portfolio-home .work-card .work-image img{border-radius:16px}
+ body.portfolio-home .work-card .work-image img{transition:none}
+ body.portfolio-home .work-card>div{margin-top:14px;gap:14px}
+ body.portfolio-home .work-card h3{font-size:21px;max-width:70%}
+ body.portfolio-home .work-card p{font-size:10px;max-width:100px}
+ body.portfolio-home .client-group{gap:22px 26px}
+ body.portfolio-home .client-name{font-size:23px}
+}
+@media(prefers-reduced-motion:reduce){body.portfolio-home *,body.portfolio-home *::before,body.portfolio-home *::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}

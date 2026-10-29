@@ -1,4 +1,5 @@
-import { cgStudies } from './cg-studies-data.js';
+import { cgStudies } from './cg-studies-data.js?v=20261030-smooth1';
+import { getMediaSources } from './media-sources.js?v=20261030-smooth1';
 
 const MOTION_TABS = ['demo', 'comparison', 'film', 'storyboards'];
 let viewerCount = 0;
@@ -26,7 +27,7 @@ export function createCGProjectViewer(getLang, { additionalEntries = [] } = {}) 
   const entries = [...cgEntries, ...additionalEntries];
   const sheet = make('link');
   sheet.rel = 'stylesheet';
-  sheet.href = new URL('./cg-project-viewer.css?v=20261030-video1', import.meta.url).href;
+  sheet.href = new URL('./cg-project-viewer.css?v=20261030-smooth1', import.meta.url).href;
   document.head.append(sheet);
 
   const dialog = make('dialog', 'cg-project-dialog');
@@ -66,7 +67,12 @@ export function createCGProjectViewer(getLang, { additionalEntries = [] } = {}) 
   videoActions.append(playButton, retryButton, directLink);
   errorBox.append(errorText, videoActions);
   errorBox.hidden = true;
-  mediaBox.append(video, errorBox);
+  const qualityBar = make('div', 'cg-viewer-video-actions');
+  qualityBar.style.padding = '12px'; qualityBar.hidden = true;
+  const originalLink = make('a', 'cg-viewer-pill');
+  originalLink.target = '_blank'; originalLink.rel = 'noopener'; originalLink.dataset.originalMedia = '';
+  qualityBar.append(originalLink);
+  mediaBox.append(video, errorBox, qualityBar);
 
   const imageBox = make('div', 'cg-viewer-images');
   const imageStage = make('div', 'cg-viewer-image-stage');
@@ -135,10 +141,12 @@ export function createCGProjectViewer(getLang, { additionalEntries = [] } = {}) 
     video.pause();
     video.removeAttribute('src');
     video.removeAttribute('poster');
+    delete video.dataset.originalSrc;
     video.load();
     errorBox.hidden = true;
     mediaBox.removeAttribute('aria-busy');
     directLink.removeAttribute('href');
+    originalLink.removeAttribute('href'); qualityBar.hidden = true;
   }
   function playbackMessage() {
     const messages = {
@@ -156,6 +164,7 @@ export function createCGProjectViewer(getLang, { additionalEntries = [] } = {}) 
     playButton.textContent = playbackState === 'ended' ? label('再次播放', 'Play again') : label('播放视频', 'Play video');
     retryButton.textContent = label('重新加载', 'Reload');
     directLink.textContent = label('直接打开视频 ↗', 'Open video ↗');
+    originalLink.textContent = label('高清原片 ↗', 'Original quality ↗');
     const available = !!video.getAttribute('src');
     playButton.hidden = !available || playbackState === 'loading' || playbackState === 'error';
     retryButton.hidden = !available || ['ready', 'paused', 'ended'].includes(playbackState);
@@ -198,8 +207,12 @@ export function createCGProjectViewer(getLang, { additionalEntries = [] } = {}) 
     const media = project?.media?.[activeTab];
     if (!media?.src) { showPlayback('missing'); return; }
     if (media.poster || project.cover) video.poster = media.poster || project.cover;
-    video.src = media.src;
-    directLink.href = media.src;
+    const source = getMediaSources(media.src);
+    video.dataset.originalSrc = media.src;
+    video.src = source.src;
+    directLink.href = source.src;
+    originalLink.href = source.originalSrc;
+    qualityBar.hidden = !source.isLite;
     video.load();
     showPlayback('ready');
     if (autoplay && dialog.open) playVideo();

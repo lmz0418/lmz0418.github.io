@@ -1,6 +1,6 @@
-import { createGuideLines as createCameraGuides } from './guide-camera.js';
-import { createProductShowcase } from './product-showcase.js';
-import { createBrandSocial } from './brand-social.js?v=20261030-video1';
+import { createGuideLines as createCameraGuides } from './guide-camera.js?v=20261030-smooth1';
+import { createProductShowcase } from './product-showcase.js?v=20261030-smooth1';
+import { createBrandSocial } from './brand-social.js?v=20261030-smooth1';
 // Applies the new visual system to the existing product/team content without
 // replacing that content or taking ownership of its business interactions.
 export function connectGallerySections(gallery,getLang,{reduced=false}={}){

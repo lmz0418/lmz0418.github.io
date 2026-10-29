@@ -1,6 +1,6 @@
 // Brand heading and a social-film presentation of the existing audience figures.
 export function createBrandSocial(getLang,{reduced=false}={}){
-  const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('./brand-social.css',import.meta.url).href;document.head.append(css);
+  const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('./brand-social.css?v=20261030-smooth1',import.meta.url).href;document.head.append(css);
   let observer=null,video=null,phone=null,metrics=[],userPaused=reduced,inView=false;
   const el=(tag,cls,text)=>{const e=document.createElement(tag);e.className=cls;if(text)e.textContent=text;return e;};
   const heart='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20.8 4.6c-2.3-2.3-6-1.5-8.8 1.4C9.2 3.1 5.5 2.3 3.2 4.6c-3.9 4 1.2 10.1 8.8 15 7.6-4.9 12.7-11 8.8-15Z"/></svg>';

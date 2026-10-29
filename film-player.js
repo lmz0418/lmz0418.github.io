@@ -1,4 +1,5 @@
 import {getLang} from './i18n.js';
+import {getMediaSources} from './media-sources.js?v=20261030-smooth1';
 
 let player;
 // Keep play() in the original click stack. A blocked promise is a request for
@@ -8,10 +9,11 @@ export function getFilmPlayer(){
   const video=document.getElementById('fullFilm'),dialog=document.getElementById('filmDialog');
   const toolbar=document.createElement('div');toolbar.className='film-playback';
   const status=document.createElement('span');status.setAttribute('role','status');
-  const play=document.createElement('button'),retry=document.createElement('button'),direct=document.createElement('a');
+  const play=document.createElement('button'),retry=document.createElement('button'),direct=document.createElement('a'),original=document.createElement('a');
   play.type=retry.type='button';play.className='film-play-button';retry.className='film-retry-button';
   direct.target='_blank';direct.rel='noopener';
-  toolbar.append(status,play,retry,direct);video.after(toolbar);
+  original.target='_blank';original.rel='noopener';original.hidden=true;original.dataset.originalMedia='';
+  toolbar.append(status,play,retry,direct,original);video.after(toolbar);
   video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');
   video.controls=true;video.preload='none';
   let timer=0,generation=0,state='idle',onClose=null,seekListener=null;
@@ -29,6 +31,7 @@ export function getFilmPlayer(){
     status.textContent=label(...(messages[state]||messages.loading));
     play.textContent=label(state==='ended'?'↻ 重播':'▶ 播放',state==='ended'?'↻ Replay':'▶ Play');
     retry.textContent=label('重新加载','Reload');direct.textContent=label('直接打开影片 ↗','Open video ↗');
+    original.textContent=label('高清原片 ↗','Original quality ↗');
     play.hidden=state==='playing';retry.hidden=!['waiting','error'].includes(state);
     video.dataset.playbackState=state;
   }
@@ -56,7 +59,7 @@ export function getFilmPlayer(){
     generation++;clear();seekListener?.abort();seekListener=null;
     const callback=onClose;onClose=null;
     if(video.readyState>=1&&!video.seeking)callback?.(video.currentTime);
-    video.pause();video.removeAttribute('src');video.removeAttribute('poster');video.load();render('idle');
+    video.pause();video.removeAttribute('src');video.removeAttribute('poster');delete video.dataset.originalSrc;video.load();original.hidden=true;original.removeAttribute('href');render('idle');
   };
   dialog.addEventListener('close',close);
   document.getElementById('closeFilm').addEventListener('click',()=>dialog.close());
@@ -66,11 +69,13 @@ export function getFilmPlayer(){
     onClose=onFinish;video.pause();delete video.dataset.playbackFailure;
     document.getElementById('filmTitle').textContent=title;
     if(poster)video.poster=poster;else video.removeAttribute('poster');
-    direct.href=src;video.muted=muted;
+    const media=getMediaSources(src);
+    direct.href=media.src;original.href=media.originalSrc;original.hidden=!media.isLite;video.muted=muted;
     if(!dialog.open)dialog.showModal();
     // Release WebGL/background streams before the requested film starts fetching.
     window.dispatchEvent(new Event('portfolio-film-open'));
-    video.src=src;
+    video.dataset.originalSrc=src;
+    video.src=media.src;
     if(startAt>0)video.addEventListener('loadedmetadata',()=>{
       video.currentTime=Math.min(startAt,Math.max(0,video.duration-.1));
     },{once:true,signal:seekListener.signal});

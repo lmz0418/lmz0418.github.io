@@ -39,7 +39,7 @@ const element = (tag, className, text) => {
 function ensureStyles() {
   if (stylesheet?.isConnected) return;
   stylesheet = element('link'); stylesheet.rel = 'stylesheet';
-  stylesheet.href = new URL('./ps-workflow.css', import.meta.url).href;
+  stylesheet.href = new URL('./ps-workflow.css?v=20261030-smooth1', import.meta.url).href;
   document.head.append(stylesheet);
 }
 addEventListener('languagechange', () => {

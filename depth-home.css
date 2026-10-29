@@ -1,4 +1,4 @@
-@import url("./vgent-journey.css");
+@import url("./vgent-journey.css?v=20261030-smooth1");
 :root{--ui:1px;--logo-width:62vw;color-scheme:dark;font-family:Arial,"PingFang SC",sans-serif;background:#050505;color:#f4f3ef}
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none}

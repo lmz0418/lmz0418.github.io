@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { JOURNEY_FPS as FPS, JOURNEY_DURATION as DURATION, JOURNEY_WALL as WALL, JOURNEY_PEEL as PEEL, JOURNEY_FLIGHT_PREROLL, JOURNEY_FLIGHT_PREPARE_AT } from './journey-timing.js';
-import { createJourneyClock } from './journey-clock.js';
-import { createJourneyMedia } from './journey-media.js?v=20261030-video1';
-import { createJourneyAudio } from './journey-audio.js?v=20261030-video1';
-import { createJourneyFlight, FLIGHT_TARGET } from './journey-flight.js?v=20261030-video1';
-import { JOURNEY_EDIT } from './journey-edit.js';
+import { JOURNEY_FPS as FPS, JOURNEY_DURATION as DURATION, JOURNEY_WALL as WALL, JOURNEY_PEEL as PEEL, JOURNEY_FLIGHT_PREROLL, JOURNEY_FLIGHT_PREPARE_AT } from './journey-timing.js?v=20261030-smooth1';
+import { createJourneyClock } from './journey-clock.js?v=20261030-smooth1';
+import { createJourneyMedia } from './journey-media.js?v=20261030-smooth1';
+import { createJourneyAudio } from './journey-audio.js?v=20261030-smooth1';
+import { createJourneyFlight, FLIGHT_TARGET } from './journey-flight.js?v=20261030-smooth1';
+import { JOURNEY_EDIT } from './journey-edit.js?v=20261030-smooth1';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const smooth=v=>{v=clamp(v);return v*v*(3-2*v)};
 const START=.80,END=1.90,ENTRY_START=.70,ENTER=1.8;

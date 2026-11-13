@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import { SVGLoader } from './vendor/SVGLoader.js';
 import { createDnaOpening } from './dna-opening.js?v=20261030-smooth1';
-import { createCinemaPlayback } from './cinema-playback.js?v=20261030-smooth1';
+import { createCinemaPlayback } from './cinema-playback.js?v=20261113-full1';
 import { cinemaCues } from './cinema-cues.js?v=20261030-smooth1';
 import { buildCinema } from './cinema-space.js?v=20261030-smooth1';
-import { createVgentJourney } from './vgent-journey.js?v=20261030-smooth1';
-import { createGalleryMaterials } from './gallery-materials.js?v=20261030-smooth1';
+import { createVgentJourney } from './vgent-journey.js?v=20261113-full1';
+import { createGalleryMaterials } from './gallery-materials.js?v=20261113-full1';
 import { createLiquidRefraction } from './liquid-refraction.js?v=20261030-smooth1';
-import { connectGallerySections } from './gallery-sections.js?v=20261030-smooth1';
+import { connectGallerySections } from './gallery-sections.js?v=20261113-full1';
 import { advanceCinemaScroll } from './cinema-scroll.js?v=20261030-smooth1';
 import { works } from './works.js?v=20261030-smooth1';
 import { PROJECT_ORDER } from './project-order.js?v=20261030-smooth1';
@@ -37,7 +37,7 @@ const directGallery=/^#(?:portfolio|work|contact|about|agent|idtalk|tools|art-co
 const clamp=(n,a=0,b=1)=>Math.min(b,Math.max(a,n));
 let guides=null,guidesReady=false,liquid=null;
 const smooth=n=>{n=clamp(n);return n*n*(3-2*n)};
-const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:mobileMedia?'default':'high-performance'});
 renderer.setClearColor('#050505');
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 const world=new THREE.Scene(),endingWorld=new THREE.Scene(),maskScene=new THREE.Scene();
@@ -115,14 +115,16 @@ const media=[["assets/seedance-preview.mp4","assets/seedance-cover.webp"],["asse
   video.poster=poster;video.muted=true;video.loop=true;video.playsInline=true;video.preload='none';
   video.hidden=true;video.setAttribute('aria-hidden','true');document.body.append(video);
   const texture=new THREE.VideoTexture(video);texture.colorSpace=THREE.SRGBColorSpace;
-  return {video,texture,src,pending:false,version:0};
+  const posterTexture=new THREE.TextureLoader().load(poster);posterTexture.colorSpace=THREE.SRGBColorSpace;
+  return {video,texture,posterTexture,src,pending:false,version:0};
 });
 function releasePreviews(){
   for(const item of media){if(!item.video.getAttribute('src'))continue;item.version++;item.pending=false;item.video.pause();item.video.removeAttribute('src');item.video.preload='none';item.video.load();}
 }
 function updatePreviews(active,index){
   for(const [i,item] of media.entries()){
-    const wanted=active&&item.src&&(!mobileMedia||i===index||phase==='opening'&&i===1);
+    const logoNeeded=['preparing','opening'].includes(phase)||position<.17;
+    const wanted=active&&item.src&&(logoNeeded?i===1:i===index&&!cinema.halls.some(h=>h.mediaIndex===i&&h.engaged&&h.currentVideo!==item.video));
     if(!wanted){if(item.video.getAttribute('src')){item.version++;item.pending=false;item.video.pause();item.video.removeAttribute('src');item.video.preload='none';item.video.load();}continue;}
     if(!item.video.getAttribute('src')){item.video.preload='auto';item.video.src=item.src;item.video.load();}
     if(item.video.paused&&!item.pending){item.pending=true;const version=item.version;item.video.play().catch(()=>{}).finally(()=>{if(version===item.version)item.pending=false;});}
@@ -149,7 +151,12 @@ function resize(){
   logoWidth=Math.min(w*(w<650?.82:.62),h*.48*950/400);
   const style=document.documentElement.style;
   style.setProperty('--logo-width',`${logoWidth}px`);style.setProperty('--logo-height',`${logoWidth*400/950}px`);style.setProperty('--ui',`${uiScale}px`);
-  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5,4096/(w*cinemaOverscan),2304/(h*cinemaOverscan)));renderer.setSize(w,h,false);
+  // Bound the oversized GPU buffers independently of physical display resolution.
+  // HTML typography stays at native resolution. Keep the full lens/flight geometry.
+  const pixelBudget=mobileMedia?1800000:6000000;
+  const ratio=Math.min(devicePixelRatio||1,mobileMedia?1:1.5,Math.sqrt(pixelBudget/(w*h*cinemaOverscan**2)));
+  renderer.setPixelRatio(ratio);renderer.setSize(w,h,false);
+  canvas.dataset.renderBudget=JSON.stringify({width:Math.round(w*ratio),height:Math.round(h*ratio),overscan:cinemaOverscan,targetHz:120});
   renderer.getDrawingBufferSize(resolution);
   const renderWidth=Math.ceil(resolution.x*cinemaOverscan),renderHeight=Math.ceil(resolution.y*cinemaOverscan);
   const inGallery=document.body.classList.contains('journey-gallery');
@@ -501,13 +508,12 @@ function updateAgentReveal(){
     if(last.t!==transform){last.t=transform;element.style.transform=transform}
   });
 }
-// A missing or hanging SVG must not prevent the frame loop and entry timer
-// from starting. The cinema can open directly without the vector portal.
+// Keep the branded loading state until the opening mark is available.
 let logoLoadTimer;
 const svg=await Promise.race([
   new SVGLoader().loadAsync('logo/make-believe.svg'),
-  new Promise((_,reject)=>{logoLoadTimer=setTimeout(()=>reject(new Error('Logo load timed out')),5000)})
-]).catch(error=>{console.warn('Opening without the vector logo:',error.message);return null});
+  new Promise((_,reject)=>{logoLoadTimer=setTimeout(()=>reject(new Error('Logo load timed out')),45000)})
+]).catch(error=>{console.warn('Cinema logo unavailable:',error.message);window.cinemaStartup?.fail();return null});
 clearTimeout(logoLoadTimer);
 if(window.cinemaStartup?.failed())throw new Error('Cinema startup already fell back to the portfolio');
 for(const [index,path] of (svg?.paths||[]).entries())for(const shape of SVGLoader.createShapes(path)){
@@ -592,10 +598,12 @@ if(matchMedia('(pointer:fine)').matches&&!reduced){
   },{passive:true});
 }
 $('skip').disabled=false;$('skip').addEventListener('click',reveal);$('replay').addEventListener('click',playOpening);
+document.querySelector('[data-return-portfolio]')?.addEventListener('click',e=>{e.preventDefault();openPersonalSection('#portfolio')});
 $('workNav').addEventListener('click',e=>{e.preventDefault();if(journey.state==='gallery')scrollTo({top:0,behavior:'smooth'});else openPersonalSection('#portfolio')});
 $('home').addEventListener('click',e=>{e.preventDefault();returnHome()});$('restart').addEventListener('click',returnHome);
 const soundBlocked=()=>playback.blocked()||journey.audioBlocked();
-function updateSound(){const blocked=soundOn&&soundBlocked();$('sound').textContent=t(blocked?'sound.blocked':soundOn?'sound.on':'sound.off');$('sound').setAttribute('aria-pressed',String(soundOn&&!blocked));$('sound').title=t(blocked?'sound.unlock':'sound.title')}
+let lastSoundKey='';
+function updateSound(){const blocked=soundOn&&soundBlocked();const key=[getLang(),soundOn,blocked].join(':');if(key===lastSoundKey)return;lastSoundKey=key;$('sound').textContent=t(blocked?'sound.blocked':soundOn?'sound.on':'sound.off');$('sound').setAttribute('aria-pressed',String(soundOn&&!blocked));$('sound').title=t(blocked?'sound.unlock':'sound.title')}
 function setSound(on){
   soundOn=on;$('fullFilm').muted=!on;
   // Start both permission requests in this gesture, before awaiting either.
@@ -640,10 +648,10 @@ function updatePreparation(){
   const prepElapsed=performance.now()-prepStarted;
   if(state.error&&prepRetries<3&&prepElapsed>prepNextRetry){prepRetries++;prepNextRetry=prepElapsed+3000;playback.recover()}
   const status=$('preparationStatus');
-  status.className='sr-only';
+  status.className='preparation-status';
   status.textContent=state.error?(prepRetries?t('prep.retry'):t('prep.failed')):t('prep.progress',{n:state.progress});
-  if(prepElapsed>=8000&&!state.playable){window.cinemaStartup?.fail();return}
-  if(state.ready||(state.playable&&prepElapsed>=3000)||prepElapsed>=8000)finishPreparation();
+  if(prepElapsed>=90000&&!state.ready){window.cinemaStartup?.fail();return}
+  if(state.ready)finishPreparation();
 }
 // This clock is independent of render speed and also checks immediately when
 // returning to the tab. No animation-frame accumulator controls the deadline.
@@ -660,6 +668,7 @@ function frame(now){
   if(renderer.getContext().isContextLost()){last=now;requestAnimationFrame(frame);return;}
   const rawDt=now-last,dt=Math.min(rawDt,50);last=now;
   const dialogOpen=hasOpenDialog();
+  if(document.hidden||dialogOpen){suspendBackground();requestAnimationFrame(frame);return;}
   const mediaBlocked=dialogOpen||document.hidden||journey.state==='gallery';
   if(mediaBlocked)suspendBackground();
   else{journey.resumeBackground();if(journey.state==='cinema')playback.resumeBackground();else playback.suspendBackground();}
@@ -668,7 +677,7 @@ function frame(now){
   position+=(target-position)*(reduced?1:1-Math.exp(-dt/(position>.80?100:200)));
   if(Math.abs(target-position)<.00001)position=target;
   cinema.pose(Math.min(position,.80),camera,px,py);
-  if(phase==='preparing')updatePreparation(dt);else playback.update(dt,Math.min(position,.80),camera,phase==='ready'&&journey.state==='cinema',dialogOpen);
+  if(phase!=='preparing')playback.update(dt,Math.min(position,.80),camera,phase==='ready'&&journey.state==='cinema',dialogOpen);
   cinema.update(now,camera,Math.min(position,.80));
   journey.update(now,dt,position,phase==='ready',dialogOpen,reduced);
   if(journey.state==='gallery'&&!cinemaBuffersParked){renderTarget.setSize(1,1);compositeTarget.setSize(1,1);endingTarget.setSize(1,1);cinemaBuffersParked=true;}
@@ -708,7 +717,7 @@ function frame(now){
     // layer out of the viewport even if the collection class is still present.
     if(guides)guides.layer.style.visibility=(phase==='ready'&&position>.999)?'visible':'hidden';
     guides&&guides.update(reduced);
-    if(!reduced){updateWorkGrid(now);updateAgentReveal()}
+    if(!reduced)updateWorkGrid(now); // gallerySections is the single reveal owner.
   }else {guidesReady=false;guides&&(guides.layer.style.visibility='hidden');}
   if(collection)gallerySections.update();
   gallery.update(now,dt,{enabled:journey.state==='gallery'||journey.state==='exiting',exit:journey.exitProgress});
@@ -746,6 +755,6 @@ function openPersonalSection(anchor='#portfolio'){
   suspendBackground();
   journey.skip();requestAnimationFrame(()=>requestAnimationFrame(()=>document.querySelector(anchor==='#work'?'#portfolio':anchor)?.scrollIntoView({behavior:'instant'})));
 }
-window.mingzeCinema={showWork:()=>openPersonalSection(),replay:playOpening};
+window.mingzeCinema={showWork:()=>openPersonalSection(),replay:playOpening,get diagnostics(){return {phase,position,target,journey:journey.state,journeyTime:journey.clock.time,render:JSON.parse(canvas.dataset.renderBudget||'{}')}}};
 document.querySelectorAll('a[href="#contact"]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();openPersonalSection('#contact')}));
 if(directGallery)openPersonalSection(location.hash);

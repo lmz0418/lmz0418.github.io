@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#050505">
+  <meta name="description" content="李明泽 · AI 美术、视觉设计与 CG 动态作品集。">
+  <title>MAKE BELIEVE — 李明泽作品集</title>
+  <link rel="canonical" href="https://lmz0418.github.io/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="李明泽 · AI 美术与视觉设计作品集">
+  <meta property="og:description" content="MAKE BELIEVE · AI 广告美术、视觉开发、CG 与动态设计。">
+  <meta property="og:url" content="https://lmz0418.github.io/">
+  <meta property="og:image" content="https://lmz0418.github.io/assets/mingze-studio-portrait.jpg">
+  <link rel="icon" href="favicon.svg">
+  <link rel="stylesheet" href="depth-home.css?v=20261030-smooth1">
+  <link rel="stylesheet" href="personal.css?v=20261030-smooth1">
+  <link rel="stylesheet" href="brand-overrides.css?v=20261030-smooth1">
+  <link rel="stylesheet" href="cursor.css?v=20261030-smooth1">
+  <link rel="stylesheet" href="portfolio-home.css?v=20261030-smooth1">
+  <script defer src="cursor.js?v=20261030-smooth1"></script>
+  <style>html.desktop-cinema-pending #portfolio{display:none!important}</style>
+  <script type="module" src="portfolio-home.js?v=20261030-smooth1"></script>
+</head>
+<body class="collection ready portfolio-home">
+  <header id="header"><a href="#portfolio" id="home" aria-label="MINGZE LI · 作品">MINGZE LI</a><nav><a href="#portfolio" id="workNav" data-i18n="nav.work">作品</a><a href="#contact" data-i18n="nav.client">联系</a><a id="cinemaLink" href="#cinema">观看开场 ↗</a><button id="lang" class="lang-toggle" type="button" aria-label="切换语言" title="切换语言" data-i18n-attr="aria-label:lang.label;title:lang.label"><span data-lang="zh">中</span><i>/</i><span data-lang="en">EN</span></button></nav></header>
+  <section id="portfolio" aria-label="所有作品" data-i18n-attr="aria-label:portfolio.label">
+    <div class="gallery-heading"><p class="sec-eyebrow">SELECTED WORKS / 2026</p><h2 id="worksHeading">让想象，拥有质感。</h2><span id="workCount">18 PROJECTS</span></div>
+    <div id="workGrid" class="work-grid" aria-live="polite"></div>
+    <noscript><p>请开启 JavaScript 浏览作品。你也可以直接<a href="resume.html">查看简历 ↗</a>。</p></noscript>
+    <section class="agent" id="agent" aria-label="AI ART STUDY"></section>
+    <section class="band" id="idtalk" aria-label="CG 与动态设计" data-i18n-attr="aria-label:idtalk.label"><div id="idtalkBody"></div></section>
+    <section class="numbers" id="numbers" aria-label="项目数据" data-i18n-attr="aria-label:numbers.label"><p class="numbers-eyebrow" data-i18n="numbers.eyebrow">数字一览</p><h2 class="numbers-title" data-i18n="numbers.title">用作品，呈现美术的不同维度。</h2><div class="numbers-grid" id="numbersGrid"></div></section>
+    <div class="client-marquee" id="clientMarquee" aria-label="参与项目涉及品牌" data-i18n-attr="aria-label:marquee.label"><div class="client-track" id="clientTrack"></div></div>
+    <section class="sec" id="clientsDetail" aria-label="合作品牌" data-i18n-attr="aria-label:clients.label"><div id="clientsBody"></div></section>
+    <section class="sec" id="team" aria-label="美术实践" data-i18n-attr="aria-label:team.label"><div id="teamBody"></div></section>
+    <section class="sec" id="about" aria-label="关于李明泽" data-i18n-attr="aria-label:about.label"><div id="aboutBody"></div></section>
+    <section class="sec" id="tools" aria-label="制作方法与工具" data-i18n-attr="aria-label:tools.label"><div id="toolsBody"></div></section>
+    <section class="sec contact" id="contact" aria-label="联系李明泽" data-i18n-attr="aria-label:contact.label"><div id="contactBody"></div></section>
+    <footer><a href="#contact" data-i18n="footer.client">联系李明泽 ↗</a><span>MINGZE LI</span></footer>
+  </section>
+  <dialog id="filmDialog"><button id="closeFilm" aria-label="关闭影片" data-i18n="dialog.close" data-i18n-attr="aria-label:dialog.closeLabel">关闭 ×</button><h2 id="filmTitle"></h2><video id="fullFilm" controls playsinline preload="none"></video></dialog>
+  <script>
+    // The required markup exists here. Do not wait for every portfolio module.
+    (()=>{
+      let auto=false;
+      const guard=new AbortController();
+      const cancelAuto=()=>{auto=false;document.documentElement.classList.remove('desktop-cinema-pending');guard.abort();};
+      if(auto){
+        document.documentElement.classList.add('desktop-cinema-pending');
+        for(const [href,rel,as] of [
+          ['./desktop-cinema-scene.js?v=20261030-touch2','modulepreload',''],
+          ['./desktop-cinema.css?v=20261030-touch2','preload','style']
+        ]){const link=document.createElement('link');link.rel=rel;link.href=href;if(as)link.as=as;document.head.append(link);}
+      }
+      document.addEventListener('click',event=>{if(event.target.closest('a[href="#portfolio"],a[href="#contact"]'))cancelAuto();},{capture:true,signal:guard.signal});
+      addEventListener('hashchange',()=>{if(location.hash&&location.hash!=='#cinema')cancelAuto();},{signal:guard.signal});
+      const watchdog=setTimeout(cancelAuto,6000);
+      import('./desktop-cinema.js?v=20261030-touch2')
+        .then(module=>module.initDesktopCinema({auto:auto&&(!location.hash||location.hash==='#cinema')}))
+        .catch(()=>document.documentElement.classList.remove('desktop-cinema-pending'))
+        .finally(()=>{clearTimeout(watchdog);guard.abort();});
+    })();
+  </script>
+</body>
+</html>

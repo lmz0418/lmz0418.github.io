@@ -1,4 +1,4 @@
-import { createGuideLines as createCameraGuides } from './guide-camera.js?v=20261030-smooth1';
+import { createGuideLines as createCameraGuides } from './guide-camera.js?v=20261113-full1';
 import { createProductShowcase } from './product-showcase.js?v=20261030-smooth1';
 import { createBrandSocial } from './brand-social.js?v=20261030-smooth1';
 // Applies the new visual system to the existing product/team content without
@@ -27,11 +27,14 @@ export function connectGallerySections(gallery,getLang,{reduced=false}={}){
   function update(){
     brandSocial.update();
     cameraGuides?.update(reduced);
-    for(const target of targets){
-      const rect=target.getBoundingClientRect(),q=Math.max(0,Math.min(1,(innerHeight*1.12-rect.top)/(innerHeight*.24)));
+    const rects=targets.map(target=>target.getBoundingClientRect());
+    targets.forEach((target,index)=>{
+      const rect=rects[index],q=Math.max(0,Math.min(1,(innerHeight*1.12-rect.top)/(innerHeight*.24)));
       const t=reduced?1:q*q*(3-2*q);
-      target.style.opacity=String(t);target.style.transform=`translate3d(0,${(1-t)*10}px,0)`;
-    }
+      const opacity=t.toFixed(3),transform=`translate3d(0,${((1-t)*10).toFixed(2)}px,0)`;
+      if(target.style.opacity!==opacity)target.style.opacity=opacity;
+      if(target.style.transform!==transform)target.style.transform=transform;
+    });
   }
   return {update,dispose(){cameraGuides?.dispose();products.dispose();brandSocial.dispose();removeEventListener('languagechange',refresh);targets=[];}};
 }

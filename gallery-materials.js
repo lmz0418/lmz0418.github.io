@@ -57,8 +57,10 @@ export function createGalleryMaterials(renderer,parts,{reduced=false}={}){
   const blur=()=>mouse.set(-100,-100);addEventListener('blur',blur);
   function update(now,dt,{enabled=false,exit=1}={}){
     tick=now;scrollForce=mix(scrollForce,Math.max(-1,Math.min(1,(scrollY-scrollLast)/80)),1-Math.exp(-dt/100));scrollLast=scrollY;
-    for(const item of items){
-      const rect=item.link.getBoundingClientRect();item.rect=rect;
+    if(!enabled){for(const item of items){item.mesh.visible=false;item.started=0;item.link.classList.remove('gpu-border-ready','gpu-image-ready');}return;}
+    const rects=items.map(item=>item.link.getBoundingClientRect());
+    for(const [index,item] of items.entries()){
+      const rect=rects[index];item.rect=rect;
       const available=enabled&&rect.width>1&&rect.height>1&&rect.bottom>-innerHeight&&rect.top<innerHeight*2;
       // Re-arm outside the entrance band, before visibility/texture early returns.
       // Cached images must replay exactly like newly loaded ones on the next visit.

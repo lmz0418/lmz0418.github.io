@@ -45,6 +45,7 @@ export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLan
   scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),material));
   const panel=document.createElement('div');panel.className='vgent-journey-ui';panel.hidden=true;
   const label=document.createElement('span'),skipButton=document.createElement('button'),retry=document.createElement('button');skipButton.type=retry.type='button';skipButton.className='vgent-work-button';panel.append(label,retry,skipButton);document.body.append(panel);
+  let lastDiagnostics=0;
   let state='cinema',failed=false,decoded=0,waiting=0,lastInput=-1000,gate=-1000,tracks=null,wasDialog=false,approachDirection=0,lastCinemaProgress=START,entryProgress=START,flightPreroll=false,flightMasterTime=FLIGHT_TARGET;
   const media=createJourneyMedia((next,time)=>{
     texture=next;decoded=time;
@@ -216,8 +217,10 @@ export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLan
     retry.textContent=en?'Retry':'重试';retry.hidden=!failed&&waiting<3000;
     skipButton.textContent=en?'View work ↗':'进入作品 ↗';skipButton.disabled=flight.active;skipButton.setAttribute('aria-busy',String(flight.active));panel.hidden=['cinema','gallery'].includes(state)||dialogOpen;
     document.body.style.setProperty('--vgent-labels',String(smooth((clock.time-(DURATION-.7))/.7)));
+    if(now-lastDiagnostics>=200){lastDiagnostics=now;
     canvas.dataset.vgentProgress=JSON.stringify({time:+clock.time.toFixed(4),direction:clock.direction,velocity:+clock.velocity.toFixed(3),paused:clock.paused,flight:flight.job?{phase:flight.job.phase,amount:+flight.job.amount.toFixed(3),blend:+flight.job.blend.toFixed(3),speed:+flight.job.velocity.toFixed(2)}:null,fps:FPS,source:+(JOURNEY_EDIT.trackOffset+(flight.active&&flight.job.phase!=='land'?flight.job.time:decoded)).toFixed(3),error:flight.active?0:+(targetTime()-decoded).toFixed(3),...(state==='entering'?{entry:{from:entryProgress,camera:camera.position.toArray().map(n=>+n.toFixed(4))}}:{})});
     canvas.dataset.vgentSeeks=JSON.stringify(media.stats);
+    }
     configureCards();return active;
   }
   function targetTime(){return clamp(clock.time,0,DURATION);}

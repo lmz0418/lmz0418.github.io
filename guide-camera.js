@@ -12,7 +12,7 @@ function createOriginalGuides(){
   const vLines=LINE_X.map(x=>{const el=document.createElement('span');el.className='guide-col';el.style.left=`${x}%`;verticals.append(el);return el});
   const horizontals=document.createElement('div');horizontals.className='guide-horizontals';
   const hLines=[24,74].map(y=>{const el=document.createElement('span');el.className='guide-hline';el.style.top=`${y}%`;horizontals.append(el);return el});
-  const rings=document.createElement('div');rings.className='guide-rings';const svg=document.createElementNS(ns,'svg');svg.setAttribute('preserveAspectRatio','none');rings.append(svg);
+  const rings=document.createElement('div');rings.className='guide-rings';
   const logos=document.createElement('div');logos.className='guide-logos';
   for(const [top,left] of [[32,-3],[76,4]]){const img=document.createElement('img');img.className='guide-wordmark';img.src='logo/make-believe.svg';img.alt='';img.decoding='async';img.style.top=`${top}%`;img.style.left=`calc(50% - 35vw + ${left}vw)`;logos.append(img)}
   layer.append(logos,rings,verticals,horizontals);portfolio.prepend(layer);
@@ -23,10 +23,23 @@ function createOriginalGuides(){
     {el:rings,axis:'xy',factor:.16,base:0},{el:logos,axis:'xy',factor:.06,base:0}
   ];
   let lastReveal=-1;
+  // Cache the same dashed contours in five bounded bitmap tiles. The old single
+  // page-height SVG re-rasterized thousands of dashes on every scrolling tile.
+  // Positions, radii, opacity and pointer-follow remain identical to the artwork.
+  let ringSize='';
   function buildRings(width,height){
-    svg.setAttribute('viewBox',`0 0 ${Math.max(1,Math.round(width))} ${Math.max(1,Math.round(height))}`);svg.replaceChildren();
+    const key=`${Math.round(width)}:${Math.round(height)}`;if(key===ringSize)return;ringSize=key;
+    rings.replaceChildren();
+    if(innerWidth<=650)return;
     const centers=[{x:.45,y:.05,step:96},{x:.58,y:.26,step:86},{x:.40,y:.48,step:78},{x:.60,y:.70,step:70},{x:.47,y:.91,step:64}];
-    centers.forEach((c,ci)=>{for(let i=1;i<=11;i++){const circle=document.createElementNS(ns,'circle');circle.setAttribute('cx',(c.x*width).toFixed(1));circle.setAttribute('cy',(c.y*height).toFixed(1));circle.setAttribute('r',(c.step*i).toFixed(1));circle.setAttribute('fill','none');circle.setAttribute('stroke-width','1');circle.setAttribute('stroke-dasharray',ci>2?'16 12':'20 14');circle.setAttribute('stroke',`rgba(255,255,255,${(.16-ci*.02-i*.005).toFixed(3)})`);svg.append(circle)}});
+    centers.forEach((c,ci)=>{
+      const tile=document.createElement('canvas'),radius=c.step*11+2,size=radius*2;
+      tile.width=tile.height=size;tile.setAttribute('aria-hidden','true');
+      Object.assign(tile.style,{position:'absolute',left:`${c.x*width-radius}px`,top:`${c.y*height-radius}px`,width:`${size}px`,height:`${size}px`});
+      const context=tile.getContext('2d');context.lineWidth=1;context.setLineDash(ci>2?[16,12]:[20,14]);
+      for(let i=1;i<=11;i++){context.beginPath();context.arc(radius,radius,c.step*i,0,Math.PI*2);context.strokeStyle=`rgba(255,255,255,${(.16-ci*.02-i*.005).toFixed(3)})`;context.stroke();}
+      rings.append(tile);
+    });
   }
   function refit(){layer.style.top=`${agent.offsetTop}px`;buildRings(Math.max(1,portfolio.clientWidth),Math.max(1,layer.offsetHeight))}
   function update(reduced){

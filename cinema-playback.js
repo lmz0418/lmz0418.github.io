@@ -58,14 +58,15 @@ export function createCinemaPlayback(cinema,previews,details,cues){
     if(dialogOpen||document.hidden){suspendBackground();return;}
     if(suspended)return;
     currentProgress=progress;currentFilm=cinema.active(progress).mediaIndex;
-    if(enabled&&mobile){
+    if(enabled){
+      const halls=cinema.halls.filter(h=>!h.externalMedia),n=halls.findIndex(h=>h.mediaIndex===currentFilm);
+      const needed=new Set([currentFilm,halls[n+1]?.mediaIndex]);
+      const weights=cinema.weights(progress);
+      for(const hall of halls)if(weights[hall.n-1]>.08)needed.add(hall.mediaIndex);
       for(const [index,player] of players.entries()){
-        if(index===currentFilm)ensurePlayer(index);
-        else if(player.video.getAttribute('src'))releasePlayer(player);
+        if(needed.has(index))ensurePlayer(index);
+        else if(player.video.getAttribute('src')&&player.gain<.002)releasePlayer(player);
       }
-    }else if(enabled&&!backgroundStarted){
-      backgroundStarted=true;
-      for(const hall of cinema.halls)if(!hall.externalMedia)ensurePlayer(hall.mediaIndex);
     }
     const introWanted=enabled&&progress<.345;
     const introTarget=sound&&introWanted ? .6*(1-THREE.MathUtils.smoothstep(progress,.25,.345)):0;
@@ -86,12 +87,13 @@ export function createCinemaPlayback(cinema,previews,details,cues){
         player.wanted=true;
         gains[hall.mediaIndex]=Math.max(gains[hall.mediaIndex],weight*THREE.MathUtils.smoothstep(progress,.31,.345));
         if(!player.started&&video.readyState>=3){
-          video.currentTime=Math.min(player.resumeTime??cues[hall.mediaIndex].start,Math.max(0,video.duration-.1));player.resumeTime=null;player.started=true;
+          const cue=Math.min(player.resumeTime??cues[hall.mediaIndex].start,Math.max(0,video.duration-.1));if(Math.abs(video.currentTime-cue)>.08)video.currentTime=cue;player.resumeTime=null;player.started=true;
           video.muted=!sound;
           playFilm(player);
         }
       }
-      const texture=hall.engaged&&player.started?player.texture:previews[hall.mediaIndex].texture;
+      const preview=previews[hall.mediaIndex];
+      const texture=hall.engaged&&player.started&&!video.seeking&&video.readyState>=2?player.texture:(!preview.video.paused&&preview.video.readyState>=2?preview.texture:preview.posterTexture);
       if(hall.screenMaterial.map!==texture){hall.screenMaterial.map=texture;hall.screenMaterial.needsUpdate=true;}
       // Retain the currently displayed video for screen-based effects.
       hall.currentVideo=texture===player.texture?video:previews[hall.mediaIndex].video;
@@ -115,7 +117,7 @@ export function createCinemaPlayback(cinema,previews,details,cues){
     // Unlock only the actual cinema films within the entry click, at zero volume.
     const needsIntro=!mobile||currentProgress<.345;if(needsIntro)ensureIntro();
     intro.muted=false;introUnlocking=needsIntro;
-    const used=[...new Set(cinema.halls.filter(hall=>!hall.externalMedia&&(!mobile||hall.mediaIndex===currentFilm)).map(hall=>hall.mediaIndex))];
+    const used=[...new Set(cinema.halls.filter(hall=>!hall.externalMedia&&hall.mediaIndex===currentFilm).map(hall=>hall.mediaIndex))];
     const versions=used.map(index=>players[index].version);
     const attempts=await Promise.allSettled([needsIntro?intro.play().finally(()=>{introUnlocking=false;}):Promise.resolve(),...used.map(index=>{
       ensurePlayer(index);const player=players[index];player.video.muted=false;player.unlocking=true;const version=player.version;
@@ -160,10 +162,11 @@ export function createCinemaPlayback(cinema,previews,details,cues){
     // full films load in the background; one stalled request cannot block all.
     const first=cinema.halls[0].mediaIndex,video=players[first].video,preview=previews[first].video;
     if(!suspended)ensurePlayer(first);
-    const previewReady=!preview.error&&preview.readyState>=3;
+    const logo=previews[1].video;
+    const previewReady=!logo.error&&logo.readyState>=3;
     const filmReady=bufferReady(video,cues[first].start);
-    return {ready:filmReady,playable:previewReady||filmReady,
-      progress:Math.round((Number(previewReady)+Number(filmReady))/2*100),error:Boolean(video.error||preview.error)};
+    return {ready:filmReady&&previewReady,playable:previewReady||filmReady,
+      progress:Math.round((Number(previewReady)+Number(filmReady))/2*100),error:Boolean(video.error||logo.error)};
   }
   return {update,setSound,preparation,recover,suspendBackground,resumeBackground,unlocked:()=>unlocked,pause,point,resume,resetIntro,blocked:()=>audioBlocked||players.some(player=>player.wanted&&player.blocked)};
 }

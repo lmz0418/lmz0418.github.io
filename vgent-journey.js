@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { JOURNEY_FPS as FPS, JOURNEY_DURATION as DURATION, JOURNEY_WALL as WALL, JOURNEY_PEEL as PEEL, JOURNEY_FLIGHT_PREROLL, JOURNEY_FLIGHT_PREPARE_AT } from './journey-timing.js?v=20261030-smooth1';
 import { createJourneyClock } from './journey-clock.js?v=20261030-smooth1';
-import { createJourneyMedia } from './journey-media.js?v=20261030-smooth1';
+import { createJourneyMedia } from './journey-media.js?v=20261113-recovery1';
 import { createJourneyAudio } from './journey-audio.js?v=20261030-smooth1';
-import { createJourneyFlight, FLIGHT_TARGET } from './journey-flight.js?v=20261030-smooth1';
+import { createJourneyFlight, FLIGHT_TARGET } from './journey-flight.js?v=20261113-recovery1';
 import { JOURNEY_EDIT } from './journey-edit.js?v=20261030-smooth1';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const smooth=v=>{v=clamp(v);return v*v*(3-2*v)};
@@ -60,7 +60,9 @@ export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLan
   const turnControl=new THREE.Quaternion(),turnA=new THREE.Quaternion(),turnB=new THREE.Quaternion(),turnC=new THREE.Quaternion();
   let sampledPose=false,sampleSeconds=1/60;
   cinema.pose(START,poseCamera,0,0);basePosition.copy(poseCamera.position);baseQuaternion.copy(poseCamera.quaternion);
-  fetch(JOURNEY_EDIT.tracks).then(r=>{if(!r.ok)throw Error('Wall tracks unavailable');return r.json()}).then(data=>tracks=data).catch(()=>{failed=true;});
+  let tracksFailed=false;
+  function loadTracks(){fetch(JOURNEY_EDIT.tracks).then(r=>{if(!r.ok)throw Error('Wall tracks unavailable');return r.json()}).then(data=>{tracks=data;tracksFailed=false;}).catch(()=>{tracksFailed=true;});}
+  loadTracks();
   function setState(next){
     if(state===next)return;state=next;
     if(state==='cinema')approachDirection=0;
@@ -83,7 +85,7 @@ export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLan
     if(sign!==clock.direction||clock.paused)media.prepare(sign,clock.time,clock.velocity);
     clock.command(sign);
   }
-  listen(retry,'click',()=>{failed=false;media.retry();});
+  listen(retry,'click',()=>{failed=false;flight.retry();media.retry();if(tracksFailed)loadTracks();});
   function enter(){
     resumeBackground();
     // Capture the actual displayed pose, including the cinema's remaining inertia.
@@ -121,8 +123,9 @@ export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLan
   function replay(){reset();lastCinemaProgress=START;cinema.pose(START,camera,0,0);enter();}
   function returnToCinema(){reset();}
   function enterWork(){
-    if(flight.active)return;
-    if(failed||reduceMotion){skip();return;}
+    // A stalled decoder must never be a prerequisite for the user's exit.
+    // A second click also exits an in-flight transition immediately.
+    if(flight.active||failed||media.failed||waiting>250||reduceMotion){skip();return;}
     // Already in the final shot: continue forwards without rewinding or jumping.
     if(clock.time>=FLIGHT_TARGET-1.5){command(1);return;}
     flightPreroll=false;flightMasterTime=FLIGHT_TARGET;
@@ -132,8 +135,10 @@ export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLan
   const suspend=()=>{if(document.hidden){clock.suspend();music.stop();}};listen(document,'visibilitychange',suspend);listen(window,'blur',()=>{if(!['cinema','gallery'].includes(state)){clock.suspend();music.stop();}});
   function update(now,dt,p,enabled,dialogOpen,reduced){
     if(dialogOpen||document.hidden)suspendBackground();
-    if(enabled&&!backgroundSuspended&&state==='cinema'&&p>(mobile?.68:.55)){
-      media.warm();if(!mobile)flight.warm();
+    if(enabled&&!backgroundSuspended&&state==='cinema'&&p>=.34){
+      // Start the main journey at the first hall. Auxiliary downloads wait for
+      // its opening buffer, so three films don't compete at the entry threshold.
+      media.warm(1);if(!mobile&&media.forwardBuffered){media.warm(-1);flight.warm();}
     }
     hall.screenMaterial.opacity=1;
     if(state==='cinema'){
@@ -177,6 +182,7 @@ export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLan
         }
       }
       const jump=flight.update(dt,blocked||clock.paused,landingReady,rewindTime);
+      if(jump?.fallbackToGallery){skip();return false;}
       if(jump?.landed){clock.set(flightMasterTime);clock.start(1);}
       if(jump&&jump.phase!=='land'){
         waiting=jump.phase==='prepare'?jump.wait*1000:0;
@@ -195,7 +201,7 @@ export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLan
       }
     }else media.pause();
     music.update(dt,{active:enabled&&!['cinema','gallery'].includes(state)&&(!flight.active||flight.job.phase==='land'),time:clock.time,velocity:clock.velocity,paused:clock.paused,blocked:document.hidden||dialogOpen||backgroundSuspended||waiting>150});
-    failed=failed||media.failed;
+    failed=tracksFailed||media.failed;
     const progress=clamp(clock.time/ENTER);
     if(state==='entering'){
       hall.group.updateWorldMatrix(true,false);hall.screen.getWorldPosition(center);normal.set(0,0,1).applyQuaternion(hall.group.getWorldQuaternion(endQuaternion));
@@ -215,7 +221,7 @@ export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLan
     if(state!=='cinema')cinema.halls.forEach((h,i)=>{h.group.visible=i===3||progress<.98;if(i===3){h.screen.visible=true;h.screenMaterial.opacity=1;h.screenMaterial.fog=false;h.group.children.forEach(child=>{if(child!==h.screen)child.visible=!child.material?.isShaderMaterial&&progress<.7;});}});
     const en=getLang()==='en';label.textContent=flight.active?(en?'Moving into selected work…':'正在进入作品…'):failed?(en?'Scene unavailable · enter work':'场景暂时不可用 · 可进入作品'):waiting>250?(en?'Preparing frames…':'正在准备画面…'):en?'↓ FORWARD · ↑ REWIND · SPACE TO PAUSE':'↓ 前进 · ↑ 回溯 · 空格暂停';
     retry.textContent=en?'Retry':'重试';retry.hidden=!failed&&waiting<3000;
-    skipButton.textContent=en?'View work ↗':'进入作品 ↗';skipButton.disabled=flight.active;skipButton.setAttribute('aria-busy',String(flight.active));panel.hidden=['cinema','gallery'].includes(state)||dialogOpen;
+    skipButton.textContent=flight.active?(en?'Open work now ↗':'直接进入作品 ↗'):(en?'View work ↗':'进入作品 ↗');skipButton.disabled=false;skipButton.setAttribute('aria-busy',String(flight.active));panel.hidden=['cinema','gallery'].includes(state)||dialogOpen;
     document.body.style.setProperty('--vgent-labels',String(smooth((clock.time-(DURATION-.7))/.7)));
     if(now-lastDiagnostics>=200){lastDiagnostics=now;
     canvas.dataset.vgentProgress=JSON.stringify({time:+clock.time.toFixed(4),direction:clock.direction,velocity:+clock.velocity.toFixed(3),paused:clock.paused,flight:flight.job?{phase:flight.job.phase,amount:+flight.job.amount.toFixed(3),blend:+flight.job.blend.toFixed(3),speed:+flight.job.velocity.toFixed(2)}:null,fps:FPS,source:+(JOURNEY_EDIT.trackOffset+(flight.active&&flight.job.phase!=='land'?flight.job.time:decoded)).toFixed(3),error:flight.active?0:+(targetTime()-decoded).toFixed(3),...(state==='entering'?{entry:{from:entryProgress,camera:camera.position.toArray().map(n=>+n.toFixed(4))}}:{})});
@@ -250,10 +256,10 @@ export function createVgentJourney({cinema,camera,renderer,canvas,gallery,getLan
   function render(target){
     if(!['scrubbing','exiting'].includes(state))return false;
     const ratio=(innerWidth/innerHeight)/(16/9);material.uniforms.cover.value.set(Math.min(1,ratio),Math.min(1,1/ratio));
-    const jump=flight.job,useProxy=flight.hasPicture;
-    material.uniforms.image.value=useProxy?flight.texture:texture??poster;
-    material.uniforms.decodeVideo.value=useProxy||texture?1:0;
-    material.uniforms.landingImage.value=texture??poster;
+    const jump=flight.job,useProxy=flight.hasPicture,hasMainPicture=media.video.readyState>=2&&!media.video.seeking;
+    material.uniforms.image.value=useProxy?flight.texture:hasMainPicture?texture:poster;
+    material.uniforms.decodeVideo.value=useProxy||hasMainPicture?1:0;
+    material.uniforms.landingImage.value=hasMainPicture?texture:poster;
     material.uniforms.flightAmount.value=jump?.amount??0;
     material.uniforms.landingMix.value=useProxy?(jump?.blend??0):0;
     material.uniforms.fade.value=smooth((clock.time-(PEEL+.25))/.75);

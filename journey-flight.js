@@ -25,13 +25,17 @@ export function createJourneyFlight(){
   function resumeBackground(){suspended=false;}
   function start(from){
     if(job)return false;
-    warm();video.pause();job={from,origin:from,phase:'prepare',elapsed:0,wait:0,seek:false,blend:0,amount:0,velocity:0,time:from};return true;
+    warm();video.pause();job={from,origin:from,phase:'prepare',elapsed:0,age:0,wait:0,seek:false,blend:0,amount:0,velocity:0,time:from};return true;
   }
   function play(){if(!suspended&&video.paused&&!pending){const attempt=version;pending=true;video.play().catch(e=>{if(attempt===version&&e.name!=='AbortError')failed=true;}).finally(()=>{if(attempt!==version)return;pending=false;if(!job)video.pause();});}}
   function update(dt,blocked,landingReady,rewindTime){
     if(!job)return null;
     const j=job,seconds=Math.min(.05,dt/1000);j.landed=false;
     if(blocked||suspended){video.pause();return j;}
+    j.age+=seconds;
+    // The CTA must finish even if the destination film never buffers. The caller
+    // can reveal the independent HTML gallery without decoding a landing frame.
+    if(j.age>8&&j.phase!=='land'){video.pause();j.fallbackToGallery=true;return j;}
     if(j.resumePhase){
       warm();
       j.resumeWait+=seconds;
@@ -80,7 +84,7 @@ export function createJourneyFlight(){
     return j;
   }
   function reset(){video.pause();job=null;video.dataset.flightPhase='idle';}
-  return {warm,start,update,reset,suspendBackground,resumeBackground,texture,video,get active(){return !!job;},get job(){return job;},
+  return {warm,start,update,reset,suspendBackground,resumeBackground,retry(){reset();suspendBackground();failed=false;resumeBackground();warm();},texture,video,get active(){return !!job;},get job(){return job;},
     get hasPicture(){return !!job&&job.seek&&!video.seeking&&video.readyState>=2&&job.phase!=='prepare'&&job.phase!=='fallback';},
     dispose(){reset();video.removeEventListener('error',onError);video.removeAttribute('src');video.load();video.remove();texture.dispose();}};
 }
